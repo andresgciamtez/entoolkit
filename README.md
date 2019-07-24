@@ -1,4 +1,4 @@
-# Epanet toolkit wrapper for Python
+# Epanet Toolkit Wrapper for Python
 ---
 
 ## Install
