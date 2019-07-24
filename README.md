@@ -3,11 +3,11 @@
 
 ## Install
 
-pip install epanettk
+pip install epanet2tk
 
 ## Load module
 
-import epanettk
+import epanet2tk
 
 ## Help
 
