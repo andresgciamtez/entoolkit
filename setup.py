@@ -2,7 +2,6 @@
 from setuptools import setup, find_packages
 from distutils.core import Extension
 
-DISTNAME = 'epanettk'
 VERSION = '0.1.0'
 PACKAGES = find_packages()
 LONG_DESCRIPTION = open('README.md', encoding="utf8").read()
@@ -16,5 +15,4 @@ setup(name='epanettk',
       author='Andrés García Martínez',
       author_email='ppnoptimizer@gmail.com',
       license='GPL 2.0',
-      url='https://github.com/andresgciamtez/epanettk',
-)
+      url='https://github.com/andresgciamtez/epanettk')
