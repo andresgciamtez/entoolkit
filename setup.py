@@ -15,4 +15,4 @@ setup(name='epanet2tk.py',
       author='Andrés García Martínez',
       author_email='ppnoptimizer@gmail.com',
       license='GPL 2.0',
-      url='https://github.com/andresgciamtez/epanettk')
+      url='https://github.com/andresgciamtez/epanet2tk')
