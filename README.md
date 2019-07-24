@@ -1,13 +1,14 @@
-## Epanet toolkit wrapper for Python
+# Epanet toolkit wrapper for Python
+-----------------------------------
 
-# Install
+## Install
 
 pip install epanettk
 
-# Load module
+## Load module
 
 import epanettk
 
-# Help
+## Help
 
 https://www.epa.gov/water-research/epanet
