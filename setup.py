@@ -6,7 +6,7 @@ VERSION = '0.1.0'
 PACKAGES = find_packages()
 LONG_DESCRIPTION = open('README.md', encoding="utf8").read()
 
-setup(name='epanettk.py',
+setup(name='epanet2tk.py',
       version=VERSION,
       packages=PACKAGES,
       description='Epanet toolkit wrapper',
