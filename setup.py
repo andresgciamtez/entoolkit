@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-VERSION = '0.1.0'
+VERSION = '0.1.2'
 PACKAGES = find_packages()
 LONG_DESCRIPTION = open('README.md', encoding="utf8").read()
 
