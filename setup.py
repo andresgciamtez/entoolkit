@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
-from distutils.core import Extension
 
 VERSION = '0.1.0'
 PACKAGES = find_packages()
