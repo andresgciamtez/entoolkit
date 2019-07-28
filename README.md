@@ -1,12 +1,17 @@
-# Epanet Toolkit Wrapper for Python
+﻿# Epanet Toolkit Wrapper for Python
+---
+
+# Source
+
+Adapted from https://github.com/USEPA/WNTR and others
 
 ## Install
 
-pip install epanet2tk
+pip install entoolkit
 
 ## Load module
 
-import epanet2tk
+from entoolkit import toolkit as et
 
 ## Help
 
