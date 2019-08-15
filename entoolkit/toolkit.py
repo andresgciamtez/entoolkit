@@ -22,7 +22,7 @@ else:
 
 _lib = ctypes.windll.LoadLibrary(resource_filename(__name__, libfile))
 
-# DECLARE CONSTANS
+# DECLARE CONSTANTS
 MAX_LABEL_LEN = 15
 ERR_MAX_CHAR = 80
 
