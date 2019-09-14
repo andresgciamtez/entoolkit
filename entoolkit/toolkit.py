@@ -1,5 +1,5 @@
 """
-ENTOOLKIT. A Phython wrapper for EPANET Programmers Toolkit
+ENTOOLKIT. A Python wrapper for EPANET Programmers Toolkit
 """
 
 import ctypes
