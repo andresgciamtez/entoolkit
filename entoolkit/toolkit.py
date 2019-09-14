@@ -1,5 +1,6 @@
 """
-ENTOOLKIT. A Python wrapper for EPANET Programmers Toolkit
+ENTOOLKIT. A Phython wrapper for EPANET Programmers Toolkit
+https://www.epa.gov/water-research/epanet
 """
 
 import ctypes
@@ -11,18 +12,18 @@ from pkg_resources import resource_filename
 # SELECT OS AND PLATFORM
 if os.name in ['nt', 'dos']:
     if '64' in platform.machine():
-        libfile = 'epanet/Windows/%s.dll'%('epanet2_amd64')
+        LIB_FILE = 'epanet/Windows/%s.dll'%('epanet2_amd64')
     else:
-        libfile = 'epanet/Windows/%s.dll'%('epanet2')
+        LIB_FILE = 'epanet/Windows/%s.dll'%('epanet2')
 
 elif sys.platform in ['darwin']:
-    libfile = 'epanet/Darwin/lib%s.dylib'%('epanet2')
+    LIB_FILE = 'epanet/Darwin/lib%s.dylib'%('epanet2')
 else:
-    libfile = 'epanet/Linux/lib%s.so'%('epanet')
+    LIB_FILE = 'epanet/Linux/lib%s.so'%('epanet')
 
-_lib = ctypes.windll.LoadLibrary(resource_filename(__name__, libfile))
+_lib = ctypes.windll.LoadLibrary(resource_filename(__name__, LIB_FILE))
 
-# DECLARE CONSTANTS
+# DECLARE CONSTANS
 MAX_LABEL_LEN = 15
 ERR_MAX_CHAR = 80
 
@@ -67,7 +68,7 @@ def ENopen(inpfn, rptfn='', binfn=''):
 
 
 def ENclose():
-    """Closes down the Toolkit system (including all files being processed).""" 
+    """Closes down the Toolkit system (including all files being processed)."""
     ierr = _lib.ENclose()
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -122,7 +123,7 @@ def ENgetnodevalue(index, paramcode):
     ---------
         index: node index
         paramcode: parameter code
-        
+
         Node parameter codes consist of the following constants:
         EN_ELEVATION  Elevation
         EN_BASEDEMAND ** Base demand
@@ -224,7 +225,7 @@ def ENgetlinkvalue(index, paramcode):
     ---------
         index:     link index
         paramcode: link parameter code
-        
+
         Link parameter codes consist of the following constants:
         EN_DIAMETER     Diameter
         EN_LENGTH       Length
@@ -313,7 +314,7 @@ def ENgetcount(countcode):
     Arguments
     ---------
         countcode: component code
-        
+
         Componet codes:
         EN_NODECOUNT    Nodes
         EN_TANKCOUNT    Reservoir and tank nodes
@@ -368,7 +369,7 @@ def  ENgetqualtype(qualcode, tracenode):
                EN_CHEM    Chemical analysis
                EN_AGE     Water age analysis
                EN_TRACE   Source tracing
-    
+
     tracenode: index of node traced in a source tracing analysis (value will be
                0 when qualcode is not EN_TRACE).
     """
@@ -396,7 +397,7 @@ def ENgetcontrol(cindex, ctype, lindex, setting, nindex, level):
        nindex:  index of controlling node
        level:   value of controlling water level or pressure for level controls
                 or of time of control action (in seconds) for time-based controls.
-                """
+    """
     ierr = _lib.ENgetcontrol(ctypes.c_int(cindex), ctypes.c_int(ctype),
                              ctypes.c_int(lindex), ctypes.c_float(setting),
                              ctypes.c_int(nindex), ctypes.c_float(level))
@@ -434,7 +435,7 @@ def ENgetversion():
 
 def ENsetcontrol(cindex, ctype, lindex, setting, nindex, level):
     """Sets the parameters of a simple control statement.
-    
+
     Arguments
     ---------
        cindex: control statement index
@@ -460,13 +461,13 @@ def ENsetcontrol(cindex, ctype, lindex, setting, nindex, level):
 
 def ENsetnodevalue(index, paramcode, value):
     """Sets the value of a parameter for a specific node.
-    
+
     Arguments
     ---------
         index: node index
         paramcode: node parameter
         value: parameter value
-        
+
         Node parameter codes consist of the following constants:
         EN_ELEVATION  Elevation
         EN_BASEDEMAND ** Base demand
@@ -478,7 +479,7 @@ def ENsetnodevalue(index, paramcode, value):
         EN_SOURCETYPE Source type (See note below)
         EN_TANKLEVEL  Initial water level in tank
         ** primary demand category is last on demand list
-        
+
         The following parameter codes apply only to storage tank nodes
         EN_TANKDIAM      Tank diameter
         EN_MINVOLUME     Minimum water volume
@@ -497,28 +498,28 @@ def ENsetnodevalue(index, paramcode, value):
 
 def ENsetlinkvalue(index, paramcode, value):
     """Sets the value of a parameter for a specific link.
-    
+
     Arguments
     ---------
     index:  link index
     paramcode: parameter code
     value: parameter value
-    
+
     Link parameter codes consist of the following constants:
     EN_DIAMETER     Diameter
     EN_LENGTH       Length
     EN_ROUGHNESS    Roughness coeff
     EN_MINORLOSS    Minor loss coeff
     EN_INITSTATUS   * Initial link status (0 = closed, 1 = open)
-    EN_INITSETTING  * Roughness for pipes, initial speed for pumps, initial 
+    EN_INITSETTING  * Roughness for pipes, initial speed for pumps, initial
                     setting for valves
     EN_KBULK        Bulk reaction coeff
     EN_KWALL        Wall reaction coeff
     EN_STATUS       * Actual link status (0 = closed, 1 = open)
-    EN_SETTING      * Roughness for pipes, actual speed for pumps, actual 
+    EN_SETTING      * Roughness for pipes, actual speed for pumps, actual
                     setting for valves
     * Use EN_INITSTATUS and EN_INITSETTING to set the design value for a link's
-    status or setting that exists prior to the start of a simulation. Use 
+    status or setting that exists prior to the start of a simulation. Use
     EN_STATUS and EN_SETTING to change these values while a simulation is being
     run (within the ENrunH - ENnextH loop).
     """
@@ -530,7 +531,7 @@ def ENsetlinkvalue(index, paramcode, value):
 
 def ENsetpattern(index, factors):
     """Sets all of the multiplier factors for a specific time pattern.
-    
+
     Arguments
     ---------
         index:   time pattern index
@@ -551,7 +552,7 @@ def ENsetpattern(index, factors):
 
 def ENsetpatternvalue(index, period, value):
     """Sets the multiplier factor for a specific period within a time pattern.
-    
+
     Arguments
     ---------
        index:  time pattern index
@@ -567,7 +568,7 @@ def ENsetpatternvalue(index, period, value):
 
 def ENsetqualtype(qualcode, chemname, chemunits, tracenode):
     """Sets the type of water quality analysis called for.
-    
+
     Arguments
     ---------
          qualcode:  water quality analysis code
@@ -584,12 +585,12 @@ def ENsetqualtype(qualcode, chemname, chemunits, tracenode):
 
 def  ENsettimeparam(paramcode, timevalue):
     """Sets the value of a time parameter.
-    
+
     Arguments
     ---------
-      paramcode: time parameter code 
+      paramcode: time parameter code
       timevalue: value of time parameter in seconds
-      
+
       Time parameter codes:
       EN_DURATION
       EN_HYDSTEP
@@ -601,7 +602,7 @@ def  ENsettimeparam(paramcode, timevalue):
       EN_RULESTEP
       EN_STATISTIC
       EN_PERIODS
-      
+
       The codes for EN_STATISTIC are:
       EN_NONE     none
       EN_AVERAGE  averaged
@@ -633,11 +634,11 @@ def ENsetoption(optioncode, value):
 
 def ENsavehydfile(fname):
     """Saves the current contents of the binary hydraulics file to a file.
-    
+
     Arguments
     ---------
     fname: name of the file where the hydraulics results should be saved
-    
+
     """
     ierr = _lib.ENsavehydfile(ctypes.c_char_p(fname.encode()))
     if ierr != 0:
@@ -646,7 +647,7 @@ def ENsavehydfile(fname):
 def  ENusehydfile(fname):
     """Uses the contents of the specified file as the current binary hydraulics
     file.
-    
+
     Arguments
     ---------
     fname: name of the file containing hydraulic analysis results for the
@@ -683,7 +684,7 @@ def ENinitH(flag=None):
         flag:  two-digit flag indicating if hydraulic results will be saved to
                 the hydraulics file (rightmost digit) and if link flows should
                 be re-initialized.
-        
+
     EN_NOSAVE           do not re-initialize flows, do not save results to file
     EN_SAVE             do not re-initialize flows, save results to file
     EN_INITFLOW         re-initialize flows, do not save results to file
@@ -696,7 +697,7 @@ def ENinitH(flag=None):
 
 def ENrunH():
     """Return the current simulation clock time t in seconds.
-    
+
     Runs a single period hydraulic analysis. First step in ENrunH - ENnextH loop.
     """
     t = ctypes.c_long()
@@ -712,10 +713,10 @@ def ENrunH():
 def ENnextH():
     """Return the time (in seconds) until next hydraulic event occurs or 0 if
     at the end of the simulation period.
-    
+
     Advances the hydraulic simulation to the start of the next hydraulic
     time period. Consecutive step in ENrunH - ENnextH loop.
-    
+
     """
     deltat = ctypes.c_long()
     ierr = _lib.ENnextH(ctypes.byref(deltat))
@@ -752,10 +753,10 @@ def ENopenQ():
 def ENinitQ(flag=None):
     """Initializes water quality and the simulation clock time prior to running
     a water quality analysis.
-    
+
     Arguments
     ---------
-    
+
     flag: flag indicating if analysis results should be saved to EPANET's binary
     output file at uniform reporting periods.
 
@@ -768,7 +769,7 @@ def ENinitQ(flag=None):
 
 def ENrunQ():
     """Return the current simulation clock time t.
-    
+
     Makes available the hydraulic and water quality results that occur at the
     start of the next time period of a water quality analysis, where the start
     of the period is returned in t
@@ -786,7 +787,7 @@ def ENrunQ():
 def ENnextQ():
     """Return the time (in seconds) until next hydraulic event occurs or 0 if
     at the end of the simulation period.
-    
+
     Advances the water quality simulation to the start of the next hydraulic
     time period. Consecutive step in ENrunQ - ENnextQ loop.
     """
@@ -799,7 +800,7 @@ def ENnextQ():
 
 def ENstepQ():
     """Return the time (in seconds) remaining in the overall simulation duration.
-    
+
     Advances the water quality simulation one water quality time step. The time
     remaining in the overall simulation is returned. Consecutive step in ENrunQ
     - ENstepQ loop
@@ -832,7 +833,7 @@ def ENsaveH():
 def ENsaveinpfile(fname):
     """Writes all current network input data to a file using the format of an
     EPANET input file.
-    
+
     Arguments
     ---------
     fname: name of the file where data is saved
@@ -866,8 +867,8 @@ def ENsetreport(command):
     Arguments
     ---------
     command: text of a report formatting command
-    
-    Formatting commands are the same as used in the [REPORT] section of the 
+
+    Formatting commands are the same as used in the [REPORT] section of the
     EPANET Input file.
     """
     ierr = _lib.ENsetreport(ctypes.c_char_p(command.encode()))
