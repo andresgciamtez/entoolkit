@@ -1,8 +1,7 @@
 """
-ENTOOLKIT. A Phython wrapper for EPANET Programmers Toolkit
+ENTOOLKIT is a Phython Wrapper for EPANET Programmer's Toolkit
 https://www.epa.gov/water-research/epanet
 """
-
 import ctypes
 import os
 import sys
@@ -23,7 +22,7 @@ else:
 
 _lib = ctypes.windll.LoadLibrary(resource_filename(__name__, LIB_FILE))
 
-# DECLARE CONSTANS
+# DECLARE GENERAL CONSTANTS
 MAX_LABEL_LEN = 15
 ERR_MAX_CHAR = 80
 
@@ -47,7 +46,7 @@ def ENepanet(inpfn, rptfn='', binfn='', vfunc=None):
                          ctypes.c_char_p(rptfn.encode()),
                          ctypes.c_char_p(binfn.encode()),
                          callback)
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -63,14 +62,14 @@ def ENopen(inpfn, rptfn='', binfn=''):
     ierr = _lib.ENopen(ctypes.c_char_p(inpfn.encode()),
                        ctypes.c_char_p(rptfn.encode()),
                        ctypes.c_char_p(binfn.encode()))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
 def ENclose():
     """Closes down the Toolkit system (including all files being processed)."""
     ierr = _lib.ENclose()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -83,7 +82,7 @@ def ENgetnodeindex(nodeid):
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetnodeindex(ctypes.c_char_p(nodeid.encode()), ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -97,7 +96,7 @@ def ENgetnodeid(index):
     """
     label = ctypes.create_string_buffer(MAX_LABEL_LEN)
     ierr = _lib.ENgetnodeid(index, ctypes.byref(label))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return label.value
 
@@ -108,10 +107,15 @@ def ENgetnodetype(index):
     Arguments
     ---------
         index: node index
+
+        Node type codes:
+        EN_JUNCTION  Junction node
+        EN_RESERVOIR Reservoir node
+        EN_TANK      Tank node
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetnodetype(index, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -124,7 +128,7 @@ def ENgetnodevalue(index, paramcode):
         index: node index
         paramcode: parameter code
 
-        Node parameter codes consist of the following constants:
+        Node parameter codes:
         EN_ELEVATION  Elevation
         EN_BASEDEMAND ** Base demand
         EN_PATTERN    ** Demand pattern index
@@ -157,7 +161,7 @@ def ENgetnodevalue(index, paramcode):
         """
     j = ctypes.c_float()
     ierr = _lib.ENgetnodevalue(index, paramcode, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -171,7 +175,7 @@ def ENgetlinkindex(linkid):
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetlinkindex(ctypes.c_char_p(linkid.encode()), ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -185,7 +189,7 @@ def ENgetlinkid(index):
     """
     label = ctypes.create_string_buffer(MAX_LABEL_LEN)
     ierr = _lib.ENgetlinkid(index, ctypes.byref(label))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return label.value
 
@@ -196,16 +200,26 @@ def ENgetlinktype(index):
     Arguments
     ---------
         index: link index
+    
+        Link type codes:
+        EN_CVPIPE Pipe with Check Valve
+        EN_PIPE   Pipe
+        EN_PUMP   Pump
+        EN_PRV    Pressure Reducing Valve
+        EN_PSV    Pressure Sustaining Valve
+        EN_PBV    Pressure Breaker Valve
+        EN_FCV    Flow Control Valve
+        EN_TCV    Throttle Control Valve
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetlinktype(index, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
 
 def ENgetlinknodes(index):
-    """Return the indexes of the end nodes of a specified link.
+    """Return the indexes of the end nodes (start, end) of a specified link.
 
     Arguments
     ---------
@@ -214,7 +228,7 @@ def ENgetlinknodes(index):
     j1 = ctypes.c_int()
     j2 = ctypes.c_int()
     ierr = _lib.ENgetlinknodes(index, ctypes.byref(j1), ctypes.byref(j2))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j1.value, j2.value
 
@@ -226,7 +240,7 @@ def ENgetlinkvalue(index, paramcode):
         index:     link index
         paramcode: link parameter code
 
-        Link parameter codes consist of the following constants:
+        Link parameter codes:
         EN_DIAMETER     Diameter
         EN_LENGTH       Length
         EN_ROUGHNESS    Roughness coeff.
@@ -247,7 +261,7 @@ def ENgetlinkvalue(index, paramcode):
     """
     j = ctypes.c_float()
     ierr = _lib.ENgetlinkvalue(index, paramcode, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -261,7 +275,7 @@ def ENgetpatternid(index):
     """
     label = ctypes.create_string_buffer(MAX_LABEL_LEN)
     ierr = _lib.ENgetpatternid(index, ctypes.byref(label))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return label.value
 
@@ -274,7 +288,7 @@ def ENgetpatternindex(patternid):
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetpatternindex(ctypes.c_char_p(patternid.encode()), ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -288,7 +302,7 @@ def ENgetpatternlen(index):
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetpatternlen(index, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -299,87 +313,13 @@ def ENgetpatternvalue(index, period):
     Arguments
     ---------
         index:  time pattern index
-        period: period within time pattern"""
+        period: period within time pattern
+    """
     j = ctypes.c_float()
     ierr = _lib.ENgetpatternvalue(index, period, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
-
-
-
-def ENgetcount(countcode):
-    """Return the number of network components of a specified type.
-
-    Arguments
-    ---------
-        countcode: component code
-
-        Componet codes:
-        EN_NODECOUNT    Nodes
-        EN_TANKCOUNT    Reservoir and tank nodes
-        EN_LINKCOUNT    Links
-        EN_PATCOUNT     Time patterns
-        EN_CURVECOUNT   Curves
-        EN_CONTROLCOUNT Simple controls
-    """
-    j = ctypes.c_int()
-    ierr = _lib.ENgetcount(countcode, ctypes.byref(j))
-    if ierr != 0:
-        raise ENtoolkitError(ierr)
-    return j.value
-
-
-def ENgetFLOW_UNITS():
-    """Return a code number indicating the units used to express all flow rates.
-    """
-    j = ctypes.c_int()
-    ierr = _lib.ENgetFLOW_UNITS(ctypes.byref(j))
-    if ierr != 0:
-        raise ENtoolkitError(ierr)
-    return j.value
-
-
-def ENgettimeparam(paramcode):
-    """Return the value of a specific analysis time parameter.
-
-    Arguments
-    ---------
-        paramcode: EN_DURATION
-                   EN_HYDSTEP
-                   EN_QUALSTEP
-                   EN_PATTERNSTEP
-                   EN_PATTERNSTART
-                   EN_REPORTSTEP
-                   EN_REPORTSTART
-                   EN_RULESTEP
-                   EN_STATISTIC
-                   EN_PERIODS
-    """
-    j = ctypes.c_int()
-    ierr = _lib.ENgettimeparam(paramcode, ctypes.byref(j))
-    if ierr != 0:
-        raise ENtoolkitError(ierr)
-    return j.value
-
-def  ENgetqualtype(qualcode, tracenode):
-    """Return the type of water quality analysis and the trace node.
-
-     qualcode: EN_NONE    No quality analysis
-               EN_CHEM    Chemical analysis
-               EN_AGE     Water age analysis
-               EN_TRACE   Source tracing
-
-    tracenode: index of node traced in a source tracing analysis (value will be
-               0 when qualcode is not EN_TRACE).
-    """
-    qualcode = ctypes.c_int()
-    tracenode = ctypes.c_int()
-    ierr = _lib.ENgetqualtype(ctypes.byref(qualcode),
-                              ctypes.byref(tracenode))
-    if ierr != 0:
-        raise ENtoolkitError(ierr)
-    return qualcode.value, tracenode.value
 
 
 def ENgetcontrol(cindex, ctype, lindex, setting, nindex, level):
@@ -401,9 +341,103 @@ def ENgetcontrol(cindex, ctype, lindex, setting, nindex, level):
     ierr = _lib.ENgetcontrol(ctypes.c_int(cindex), ctypes.c_int(ctype),
                              ctypes.c_int(lindex), ctypes.c_float(setting),
                              ctypes.c_int(nindex), ctypes.c_float(level))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return cindex, ctype, lindex, setting, nindex, level
+
+
+
+
+def ENgetcount(countcode):
+    """Return the number of network components of a specified type.
+
+    Arguments
+    ---------
+        countcode: component code
+
+        Component codes:
+        EN_NODECOUNT    Nodes
+        EN_TANKCOUNT    Reservoir and tank nodes
+        EN_LINKCOUNT    Links
+        EN_PATCOUNT     Time patterns
+        EN_CURVECOUNT   Curves
+        EN_CONTROLCOUNT Simple controls
+    """
+    j = ctypes.c_int()
+    ierr = _lib.ENgetcount(countcode, ctypes.byref(j))
+    if ierr:
+        raise ENtoolkitError(ierr)
+    return j.value
+
+
+def ENgetflowunits():
+    """Return a code number indicating the units used to express all flow rates.
+
+        Flow units codes:
+        EN_CFS  Cubic feet per second
+        EN_GPM  Gallons per minute
+        EN_MGD  Million gallons per day
+        EN_IMGD Imperial mgd
+        EN_AFD  Acre-feet per day
+        EN_LPS  Liters per second
+        EN_LPM  Liters per minute
+        EN_MLD  Million liters per day
+        EN_CMH  Cubic meters per hour
+        EN_CMD  Cubic meters per day
+    """
+    j = ctypes.c_int()
+    ierr = _lib.ENgetflowunits(ctypes.byref(j))
+    if ierr:
+        raise ENtoolkitError(ierr)
+    return j.value
+
+
+def ENgettimeparam(paramcode):
+    """Return the value of a specific analysis time parameter.
+
+    Arguments
+    ---------
+    paramcode: EN_DURATION     Simulation duration
+               EN_HYDSTEP      Hydraulic time step
+               EN_QUALSTEP     Water quality time step
+               EN_PATTERNSTEP  Time pattern time step
+               EN_PATTERNSTART Time pattern start time
+               EN_REPORTSTEP   Reporting time step
+               EN_REPORTSTART  Report starting time
+               EN_RULESTEP     Time step for evaluating rule-based controls
+               EN_STATISTIC    Type of time series post-processing used:
+                   * Type of time series post-processing used:
+                   EN_AVERAGE  Averaged
+                   EN_MINIMUM  Minimums
+                   EN_MAXIMUM  Maximus
+                   EN_RANGE    Ranges
+              EN_PERIODS      cNumber of reporting periods saved to binary file
+    """
+    j = ctypes.c_int()
+    ierr = _lib.ENgettimeparam(paramcode, ctypes.byref(j))
+    if ierr:
+        raise ENtoolkitError(ierr)
+    return j.value
+
+
+def  ENgetqualtype(qualcode, tracenode):
+    """Return the type of water quality analysis and the trace node.
+
+     qualcode: EN_NONE    No quality analysis
+               EN_CHEM    Chemical analysis
+               EN_AGE     Water age analysis
+               EN_TRACE   Source tracing
+
+    tracenode: index of node traced in a source tracing analysis (value will be
+               0 when qualcode is not EN_TRACE).
+    """
+    qualcode = ctypes.c_int()
+    tracenode = ctypes.c_int()
+    ierr = _lib.ENgetqualtype(ctypes.byref(qualcode),
+                              ctypes.byref(tracenode))
+    if ierr:
+        raise ENtoolkitError(ierr)
+    return qualcode.value, tracenode.value
 
 
 def ENgetoption(optioncode):
@@ -419,16 +453,17 @@ def ENgetoption(optioncode):
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetoption(optioncode, ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
+
 
 def ENgetversion():
     """Return the current version number of the Toolkit.
     """
     j = ctypes.c_int()
     ierr = _lib.ENgetversion(ctypes.byref(j))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return j.value
 
@@ -455,7 +490,7 @@ def ENsetcontrol(cindex, ctype, lindex, setting, nindex, level):
                              ctypes.c_float(setting),
                              ctypes.c_int(nindex),
                              ctypes.c_float(level))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -468,7 +503,7 @@ def ENsetnodevalue(index, paramcode, value):
         paramcode: node parameter
         value: parameter value
 
-        Node parameter codes consist of the following constants:
+        Node parameter codes:
         EN_ELEVATION  Elevation
         EN_BASEDEMAND ** Base demand
         EN_PATTERN    ** Demand pattern index
@@ -492,7 +527,7 @@ def ENsetnodevalue(index, paramcode, value):
     ierr = _lib.ENsetnodevalue(ctypes.c_int(index),
                                ctypes.c_int(paramcode),
                                ctypes.c_float(value))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -501,23 +536,23 @@ def ENsetlinkvalue(index, paramcode, value):
 
     Arguments
     ---------
-    index:  link index
-    paramcode: parameter code
-    value: parameter value
-
-    Link parameter codes consist of the following constants:
-    EN_DIAMETER     Diameter
-    EN_LENGTH       Length
-    EN_ROUGHNESS    Roughness coeff
-    EN_MINORLOSS    Minor loss coeff
-    EN_INITSTATUS   * Initial link status (0 = closed, 1 = open)
-    EN_INITSETTING  * Roughness for pipes, initial speed for pumps, initial
-                    setting for valves
-    EN_KBULK        Bulk reaction coeff
-    EN_KWALL        Wall reaction coeff
-    EN_STATUS       * Actual link status (0 = closed, 1 = open)
-    EN_SETTING      * Roughness for pipes, actual speed for pumps, actual
-                    setting for valves
+        index:  link index
+        paramcode: parameter code
+        value: parameter value
+    
+        Link parameter codes:
+        EN_DIAMETER     Diameter
+        EN_LENGTH       Length
+        EN_ROUGHNESS    Roughness coeff
+        EN_MINORLOSS    Minor loss coeff
+        EN_INITSTATUS   * Initial link status (0 = closed, 1 = open)
+        EN_INITSETTING  * Roughness for pipes, initial speed for pumps, initial
+                        setting for valves
+        EN_KBULK        Bulk reaction coeff
+        EN_KWALL        Wall reaction coeff
+        EN_STATUS       * Actual link status (0 = closed, 1 = open)
+        EN_SETTING      * Roughness for pipes, actual speed for pumps, actual
+                        setting for valves
     * Use EN_INITSTATUS and EN_INITSETTING to set the design value for a link's
     status or setting that exists prior to the start of a simulation. Use
     EN_STATUS and EN_SETTING to change these values while a simulation is being
@@ -525,7 +560,7 @@ def ENsetlinkvalue(index, paramcode, value):
     """
     ierr = _lib.ENsetlinkvalue(ctypes.c_int(index), ctypes.c_int(paramcode),
                                ctypes.c_float(value))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -537,7 +572,6 @@ def ENsetpattern(index, factors):
         index:   time pattern index
         factors: multiplier factors list for the entire pattern
     """
-
     nfactors = len(factors)
     cfactors_type = ctypes.c_float* nfactors
     cfactors = cfactors_type()
@@ -546,7 +580,7 @@ def ENsetpattern(index, factors):
     ierr = _lib.ENsetpattern(ctypes.c_int(index),
                              cfactors,
                              ctypes.c_int(nfactors))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -562,7 +596,7 @@ def ENsetpatternvalue(index, period, value):
 
     ierr = _lib.ENsetpatternvalue(ctypes.c_int(index), ctypes.c_int(period),
                                   ctypes.c_float(value))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -571,15 +605,22 @@ def ENsetqualtype(qualcode, chemname, chemunits, tracenode):
 
     Arguments
     ---------
-         qualcode:  water quality analysis code
-         chemname:  name of the chemical being analyzed
-         chemunits:  units that the chemical is measured in
-         tracenode:  ID of node traced in a source tracing analysis """
+        qualcode:   water quality analysis code
+        chemname:   name of the chemical being analyzed
+        chemunits:  units that the chemical is measured in
+        tracenode:  ID of node traced in a source tracing analysis
+
+        Water quality analysis codes:
+        EN_NONE  No quality analysis
+        EN_CHEM  Chemical analysis
+        EN_AGE   Water age analysis
+        EN_TRACE Source tracing
+    """
     ierr = _lib.ENsetqualtype(ctypes.c_int(qualcode),
                               ctypes.c_char_p(chemname.encode()),
                               ctypes.c_char_p(chemunits.encode()),
                               ctypes.c_char_p(tracenode.encode()))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -588,30 +629,29 @@ def  ENsettimeparam(paramcode, timevalue):
 
     Arguments
     ---------
-      paramcode: time parameter code
-      timevalue: value of time parameter in seconds
-
-      Time parameter codes:
-      EN_DURATION
-      EN_HYDSTEP
-      EN_QUALSTEP
-      EN_PATTERNSTEP
-      EN_PATTERNSTART
-      EN_REPORTSTEP
-      EN_REPORTSTART
-      EN_RULESTEP
-      EN_STATISTIC
-      EN_PERIODS
-
-      The codes for EN_STATISTIC are:
-      EN_NONE     none
-      EN_AVERAGE  averaged
-      EN_MINIMUM  minimums
-      EN_MAXIMUM  maximums
-      EN_RANGE    ranges
+        paramcode: time parameter code
+        timevalue: value of time parameter in seconds/statistic type
+        
+        Time parameter codes:
+        EN_DURATION
+        EN_HYDSTEP
+        EN_QUALSTEP
+        EN_PATTERNSTEP
+        EN_PATTERNSTART
+        EN_REPORTSTEP
+        EN_REPORTSTART
+        EN_RULESTEP
+        EN_STATISTIC
+        EN_PERIODS
+        
+        Statistic type constants:
+        EN_AVERAGE  averaged
+        EN_MINIMUM  minimums
+        EN_MAXIMUM  maximums
+        EN_RANGE    ranges
     """
     ierr = _lib.ENsettimeparam(ctypes.c_int(paramcode), ctypes.c_int(timevalue))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -628,7 +668,7 @@ def ENsetoption(optioncode, value):
         value:  option value
       """
     ierr = _lib.ENsetoption(ctypes.c_int(optioncode), ctypes.c_float(value))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -641,7 +681,7 @@ def ENsavehydfile(fname):
 
     """
     ierr = _lib.ENsavehydfile(ctypes.c_char_p(fname.encode()))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 def  ENusehydfile(fname):
@@ -654,7 +694,7 @@ def  ENusehydfile(fname):
            current network
     """
     ierr = _lib.ENusehydfile(ctypes.c_char_p(fname.encode()))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -663,7 +703,7 @@ def ENsolveH():
     written to the binary Hydraulics file.
     """
     ierr = _lib.ENsolveH()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -671,7 +711,7 @@ def ENopenH():
     """Opens the hydraulics analysis system.
     """
     ierr = _lib.ENopenH()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -691,7 +731,7 @@ def ENinitH(flag=None):
     EN_SAVE+EN_INITFLOW re-initialize flows, save results to file
     """
     ierr = _lib.ENinitH(flag)
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -720,7 +760,7 @@ def ENnextH():
     """
     deltat = ctypes.c_long()
     ierr = _lib.ENnextH(ctypes.byref(deltat))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return deltat.value
 
@@ -729,7 +769,7 @@ def ENcloseH():
     """Closes the hydraulic analysis system, freeing all allocated memory.
     """
     ierr = _lib.ENcloseH()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -738,7 +778,7 @@ def ENsolveQ():
     reporting intervals written to EPANET's binary Output file.
     """
     ierr = _lib.ENsolveQ()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -746,7 +786,7 @@ def ENopenQ():
     """Opens the water quality analysis system.
     """
     ierr = _lib.ENopenQ()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -763,7 +803,7 @@ def ENinitQ(flag=None):
     flag  EN_NOSAVE | EN_SAVE
     """
     ierr = _lib.ENinitQ(flag)
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -793,7 +833,7 @@ def ENnextQ():
     """
     _deltat = ctypes.c_long()
     ierr = _lib.ENnextQ(ctypes.byref(_deltat))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return _deltat.value
 
@@ -807,7 +847,7 @@ def ENstepQ():
     """
     _tleft = ctypes.c_long()
     ierr = _lib.ENnextQ(ctypes.byref(_tleft))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
     return _tleft.value
 
@@ -816,7 +856,7 @@ def ENcloseQ():
     """Closes the water quality analysis system, freeing all allocated memory.
     """
     ierr = _lib.ENcloseQ()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -826,7 +866,7 @@ def ENsaveH():
     reporting intervals.
     """
     ierr = _lib.ENsaveH()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -839,7 +879,7 @@ def ENsaveinpfile(fname):
     fname: name of the file where data is saved
     """
     ierr = _lib.ENsaveinpfile(ctypes.c_char_p(fname.encode()))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -847,7 +887,7 @@ def ENreport():
     """Writes a formatted text report on simulation results to the Report file.
     """
     ierr = _lib.ENreport()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -857,7 +897,7 @@ def ENresetreport():
     that either appeared in the [REPORT] section of the EPANET Input file or
     were issued with the ENsetreport function"""
     ierr = _lib.ENresetreport()
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -872,7 +912,7 @@ def ENsetreport(command):
     EPANET Input file.
     """
     ierr = _lib.ENsetreport(ctypes.c_char_p(command.encode()))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
@@ -887,13 +927,24 @@ def ENsetstatusreport(statuslevel):
                   2 - full status reporting
     """
     ierr = _lib.ENsetstatusreport(ctypes.c_int(statuslevel))
-    if ierr != 0:
+    if ierr:
         raise ENtoolkitError(ierr)
 
 
 def ENgeterror(errcode):
     """Return the text of the message associated with a particular error or
-    warning code."""
+    warning code.
+    
+    Arguments
+    ---------
+    errcode: error or warning code
+
+    Error ranges:
+        from   1 to   6 warning
+        from 101 to 120 system error
+        from 200 to 251 input error
+        from 301 to 309 file error
+    """
     _errmsg = ctypes.create_string_buffer(ERR_MAX_CHAR)
     _lib.ENgeterror(errcode, ctypes.byref(_errmsg), ERR_MAX_CHAR)
     return _errmsg.value.decode()
@@ -905,7 +956,7 @@ class ENtoolkitError(Exception):
         self.warning = ierr < 100
         self.args = (ierr,)
         self.message = ENgeterror(ierr)
-        if self.message == '' and ierr != 0:
+        if self.message == '' and ierr:
             self.message = 'ENtoolkit Undocumented Error ' + str(ierr)
             self.message += ': look at text.h in epanet sources'
 
@@ -913,7 +964,7 @@ class ENtoolkitError(Exception):
         return self.message
 
 
-EN_ELEVATION     = 0      # /* Node parameters */
+EN_ELEVATION     = 0      # Node parameters
 EN_BASEDEMAND    = 1
 EN_PATTERN       = 2
 EN_EMITTER       = 3
@@ -939,7 +990,7 @@ EN_MAXLEVEL      = 21
 EN_MIXFRACTION   = 22
 EN_TANK_KBULK    = 23
 
-EN_DIAMETER      = 0      # /* Link parameters */
+EN_DIAMETER      = 0      # Link parameters
 EN_LENGTH        = 1
 EN_ROUGHNESS     = 2
 EN_MINORLOSS     = 3
@@ -954,7 +1005,7 @@ EN_STATUS        = 11
 EN_SETTING       = 12
 EN_ENERGY        = 13
 
-EN_DURATION      = 0      # /* Time parameters */
+EN_DURATION      = 0      # Time parameters
 EN_HYDSTEP       = 1
 EN_QUALSTEP      = 2
 EN_PATTERNSTEP   = 3
@@ -965,18 +1016,18 @@ EN_RULESTEP      = 7
 EN_STATISTIC     = 8
 EN_PERIODS       = 9
 
-EN_NODECOUNT     = 0      # /* Component counts */
+EN_NODECOUNT     = 0      # Component counts
 EN_TANKCOUNT     = 1
 EN_LINKCOUNT     = 2
 EN_PATCOUNT      = 3
 EN_CURVECOUNT    = 4
 EN_CONTROLCOUNT  = 5
 
-EN_JUNCTION      = 0      # /* Node types */
+EN_JUNCTION      = 0      # Node types
 EN_RESERVOIR     = 1
 EN_TANK          = 2
 
-EN_CVPIPE        = 0      # /* Link types */
+EN_CVPIPE        = 0      # Link types
 EN_PIPE          = 1
 EN_PUMP          = 2
 EN_PRV           = 3
@@ -986,17 +1037,17 @@ EN_FCV           = 6
 EN_TCV           = 7
 EN_GPV           = 8
 
-EN_NONE          = 0      # /* Quality analysis types */
+EN_NONE          = 0      # Quality analysis types
 EN_CHEM          = 1
 EN_AGE           = 2
 EN_TRACE         = 3
 
-EN_CONCEN        = 0      # /* Source quality types */
+EN_CONCEN        = 0      # Source quality types
 EN_MASS          = 1
 EN_SETPOINT      = 2
 EN_FLOWPACED     = 3
 
-EN_CFS           = 0      # /* Flow units types */
+EN_CFS           = 0      # Flow units types
 EN_GPM           = 1
 EN_MGD           = 2
 EN_IMGD          = 3
@@ -1007,39 +1058,32 @@ EN_MLD           = 7
 EN_CMH           = 8
 EN_CMD           = 9
 
-EN_TRIALS        = 0      # /* Misc. options */
+EN_TRIALS        = 0      # Misc. options
 EN_ACCURACY      = 1
 EN_TOLERANCE     = 2
 EN_EMITEXPON     = 3
 EN_DEMANDMULT    = 4
 
-EN_LOWLEVEL      = 0      # /* Control types */
+EN_LOWLEVEL      = 0      # Control types
 EN_HILEVEL       = 1
 EN_TIMER         = 2
 EN_TIMEOFDAY     = 3
 
-EN_AVERAGE       = 1      # /* Time statistic types.    */
+EN_AVERAGE       = 1      # Time statistic types
 EN_MINIMUM       = 2
 EN_MAXIMUM       = 3
 EN_RANGE         = 4
 
-EN_MIX1          = 0      # /* Tank mixing models */
+EN_MIX1          = 0      # Tank mixing models
 EN_MIX2          = 1
 EN_FIFO          = 2
 EN_LIFO          = 3
 
-EN_NOSAVE        = 0      # /* Save-results-to-file flag */
+EN_NOSAVE        = 0      # Save-results-to-file flag
 EN_SAVE          = 1
-EN_INITFLOW      = 10     # /* Re-initialize flow flag   */
+EN_INITFLOW      = 10     # Re-initialize flow flag
 
+EN_NO_REPORT     = 0      # no status reporting
+EN_NORMAL_REPORT = 1      # normal reporting
+EN_FULL_REPORT   = 2      # full status reporting
 
-FLOW_UNITS= {EN_CFS :"CFS",
-             EN_GPM :"GPM",
-             EN_MGD :"MGD",
-             EN_IMGD:"IMGD",
-             EN_AFD :"AFD",
-             EN_LPS :"LPS",
-             EN_LPM :"LPM",
-             EN_MLD :"MLD",
-             EN_CMH :"CMH",
-             EN_CMD :"CMD"}
