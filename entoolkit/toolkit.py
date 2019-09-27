@@ -817,11 +817,8 @@ def ENrunQ():
     """
     _t = ctypes.c_long()
     ierr = _lib.ENrunQ(ctypes.byref(_t))
-    if ierr >= 100:
+    if ierr >= 100:  # ierr < 100 WARNING
         raise ENtoolkitError(ierr)
-    if ierr > 0:
-        return ENgeterror(ierr)
-
     return _t.value
 
 def ENnextQ():
