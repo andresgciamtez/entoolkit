@@ -1,4 +1,4 @@
-# Python extension for the EPANET Programmers Toolkit
+# Python extension for the EPANET 2 Programmer Toolkit
 https://www.epa.gov/water-research/epanet
 
 # Source
