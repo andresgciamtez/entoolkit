@@ -1,5 +1,5 @@
 """
-ENTOOLKIT is a Phython Wrapper for EPANET Programmer's Toolkit
+ENTOOLKIT is a python extension for the EPANET Programmers Toolkit
 https://www.epa.gov/water-research/epanet
 """
 import ctypes
@@ -8,23 +8,31 @@ import sys
 import platform
 from pkg_resources import resource_filename
 
-# SELECT OS AND PLATFORM
-if os.name in ['nt', 'dos']:
-    if '64' in platform.machine():
-        LIB_FILE = 'epanet/Windows/%s.dll'%('epanet2_amd64')
+# LOAD EPANET LIB SELECTING OS AND PLATFORM
+try:
+    if os.name in ['nt', 'dos']:
+        fname = 'epanet2_amd64' if '64' in platform.machine() else 'epanet2'
+        libfile = 'epanet/Windows/{}.dll'.format(fname)
+        tlib = ctypes.windll.LoadLibrary(resource_filename(__name__, libfile))
     else:
-        LIB_FILE = 'epanet/Windows/%s.dll'%('epanet2')
-
-elif sys.platform in ['darwin']:
-    LIB_FILE = 'epanet/Darwin/lib%s.dylib'%('epanet2')
-else:
-    LIB_FILE = 'epanet/Linux/lib%s.so'%('epanet')
-
-_lib = ctypes.windll.LoadLibrary(resource_filename(__name__, LIB_FILE))
+        if sys.platform in ['darwin']:
+            libfile = 'epanet/Darwin/libepanet2.dylib'
+        else:
+            libfile = 'epanet/Linux/libepanet.so'
+        tlib = ctypes.cdll.LoadLibrary(resource_filename(__name__, libfile))
+except:
+    raise ImportError('Error loading epanet lib.')
 
 # DECLARE GENERAL CONSTANTS
-MAX_LABEL_LEN = 15
+MAX_LABEL_LEN = 16
 ERR_MAX_CHAR = 80
+
+def err_cnt(function):
+    '''If an epantet call return an error.'''
+    ierr, result = function
+    if ierr != 0:
+        raise ENtoolkitError(ierr)
+    return result
 
 def ENepanet(inpfn, rptfn='', binfn='', vfunc=None):
     """Runs a complete EPANET simulation.
@@ -42,7 +50,7 @@ def ENepanet(inpfn, rptfn='', binfn='', vfunc=None):
         callback = cfunc(vfunc)
     else:
         callback = None
-    ierr = _lib.ENepanet(ctypes.c_char_p(inpfn.encode()),
+    ierr = tlib.ENepanet(ctypes.c_char_p(inpfn.encode()),
                          ctypes.c_char_p(rptfn.encode()),
                          ctypes.c_char_p(binfn.encode()),
                          callback)
@@ -51,7 +59,7 @@ def ENepanet(inpfn, rptfn='', binfn='', vfunc=None):
 
 
 def ENopen(inpfn, rptfn='', binfn=''):
-    """Opens the Toolkit to analyze a particular distribution system.
+    """Open the Toolkit to analyze a particular distribution system.
 
     Arguments
     ---------
@@ -59,7 +67,7 @@ def ENopen(inpfn, rptfn='', binfn=''):
         rptfn: name of an output report file
         binfn: name of an optional binary output file
     """
-    ierr = _lib.ENopen(ctypes.c_char_p(inpfn.encode()),
+    ierr = tlib.ENopen(ctypes.c_char_p(inpfn.encode()),
                        ctypes.c_char_p(rptfn.encode()),
                        ctypes.c_char_p(binfn.encode()))
     if ierr:
@@ -67,8 +75,8 @@ def ENopen(inpfn, rptfn='', binfn=''):
 
 
 def ENclose():
-    """Closes down the Toolkit system (including all files being processed)."""
-    ierr = _lib.ENclose()
+    """Close down the Toolkit system (including all files being processed)."""
+    ierr = tlib.ENclose()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -81,7 +89,7 @@ def ENgetnodeindex(nodeid):
         nodeid: node ID label
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetnodeindex(ctypes.c_char_p(nodeid.encode()), ctypes.byref(j))
+    ierr = tlib.ENgetnodeindex(ctypes.c_char_p(nodeid.encode()), ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -95,7 +103,7 @@ def ENgetnodeid(index):
         index: node index
     """
     label = ctypes.create_string_buffer(MAX_LABEL_LEN)
-    ierr = _lib.ENgetnodeid(index, ctypes.byref(label))
+    ierr = tlib.ENgetnodeid(index, ctypes.byref(label))
     if ierr:
         raise ENtoolkitError(ierr)
     return label.value
@@ -114,7 +122,7 @@ def ENgetnodetype(index):
         EN_TANK      Tank node
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetnodetype(index, ctypes.byref(j))
+    ierr = tlib.ENgetnodetype(index, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -160,7 +168,7 @@ def ENgetnodevalue(index, paramcode):
         EN_TANK_KBULK  Bulk reaction rate coefficient
         """
     j = ctypes.c_float()
-    ierr = _lib.ENgetnodevalue(index, paramcode, ctypes.byref(j))
+    ierr = tlib.ENgetnodevalue(index, paramcode, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -174,7 +182,7 @@ def ENgetlinkindex(linkid):
         linkid: link ID label
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetlinkindex(ctypes.c_char_p(linkid.encode()), ctypes.byref(j))
+    ierr = tlib.ENgetlinkindex(ctypes.c_char_p(linkid.encode()), ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -188,7 +196,7 @@ def ENgetlinkid(index):
         index: link index
     """
     label = ctypes.create_string_buffer(MAX_LABEL_LEN)
-    ierr = _lib.ENgetlinkid(index, ctypes.byref(label))
+    ierr = tlib.ENgetlinkid(index, ctypes.byref(label))
     if ierr:
         raise ENtoolkitError(ierr)
     return label.value
@@ -212,7 +220,7 @@ def ENgetlinktype(index):
         EN_TCV    Throttle Control Valve
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetlinktype(index, ctypes.byref(j))
+    ierr = tlib.ENgetlinktype(index, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -227,7 +235,7 @@ def ENgetlinknodes(index):
     """
     j1 = ctypes.c_int()
     j2 = ctypes.c_int()
-    ierr = _lib.ENgetlinknodes(index, ctypes.byref(j1), ctypes.byref(j2))
+    ierr = tlib.ENgetlinknodes(index, ctypes.byref(j1), ctypes.byref(j2))
     if ierr:
         raise ENtoolkitError(ierr)
     return j1.value, j2.value
@@ -260,7 +268,7 @@ def ENgetlinkvalue(index, paramcode):
         * computed values
     """
     j = ctypes.c_float()
-    ierr = _lib.ENgetlinkvalue(index, paramcode, ctypes.byref(j))
+    ierr = tlib.ENgetlinkvalue(index, paramcode, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -274,7 +282,7 @@ def ENgetpatternid(index):
         index: pattern index
     """
     label = ctypes.create_string_buffer(MAX_LABEL_LEN)
-    ierr = _lib.ENgetpatternid(index, ctypes.byref(label))
+    ierr = tlib.ENgetpatternid(index, ctypes.byref(label))
     if ierr:
         raise ENtoolkitError(ierr)
     return label.value
@@ -287,7 +295,7 @@ def ENgetpatternindex(patternid):
         id: pattern ID label
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetpatternindex(ctypes.c_char_p(patternid.encode()), ctypes.byref(j))
+    ierr = tlib.ENgetpatternindex(ctypes.c_char_p(patternid.encode()), ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -301,7 +309,7 @@ def ENgetpatternlen(index):
         index:pattern index
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetpatternlen(index, ctypes.byref(j))
+    ierr = tlib.ENgetpatternlen(index, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -316,7 +324,7 @@ def ENgetpatternvalue(index, period):
         period: period within time pattern
     """
     j = ctypes.c_float()
-    ierr = _lib.ENgetpatternvalue(index, period, ctypes.byref(j))
+    ierr = tlib.ENgetpatternvalue(index, period, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -338,7 +346,7 @@ def ENgetcontrol(cindex, ctype, lindex, setting, nindex, level):
        level:   value of controlling water level or pressure for level controls
                 or of time of control action (in seconds) for time-based controls.
     """
-    ierr = _lib.ENgetcontrol(ctypes.c_int(cindex), ctypes.c_int(ctype),
+    ierr = tlib.ENgetcontrol(ctypes.c_int(cindex), ctypes.c_int(ctype),
                              ctypes.c_int(lindex), ctypes.c_float(setting),
                              ctypes.c_int(nindex), ctypes.c_float(level))
     if ierr:
@@ -364,7 +372,7 @@ def ENgetcount(countcode):
         EN_CONTROLCOUNT Simple controls
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetcount(countcode, ctypes.byref(j))
+    ierr = tlib.ENgetcount(countcode, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -386,7 +394,7 @@ def ENgetflowunits():
         EN_CMD  Cubic meters per day
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetflowunits(ctypes.byref(j))
+    ierr = tlib.ENgetflowunits(ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -414,7 +422,7 @@ def ENgettimeparam(paramcode):
               EN_PERIODS      cNumber of reporting periods saved to binary file
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgettimeparam(paramcode, ctypes.byref(j))
+    ierr = tlib.ENgettimeparam(paramcode, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -433,7 +441,7 @@ def  ENgetqualtype(qualcode, tracenode):
     """
     qualcode = ctypes.c_int()
     tracenode = ctypes.c_int()
-    ierr = _lib.ENgetqualtype(ctypes.byref(qualcode),
+    ierr = tlib.ENgetqualtype(ctypes.byref(qualcode),
                               ctypes.byref(tracenode))
     if ierr:
         raise ENtoolkitError(ierr)
@@ -452,7 +460,7 @@ def ENgetoption(optioncode):
                 EN_DEMANDMULT
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetoption(optioncode, ctypes.byref(j))
+    ierr = tlib.ENgetoption(optioncode, ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -462,7 +470,7 @@ def ENgetversion():
     """Return the current version number of the Toolkit.
     """
     j = ctypes.c_int()
-    ierr = _lib.ENgetversion(ctypes.byref(j))
+    ierr = tlib.ENgetversion(ctypes.byref(j))
     if ierr:
         raise ENtoolkitError(ierr)
     return j.value
@@ -484,7 +492,7 @@ def ENsetcontrol(cindex, ctype, lindex, setting, nindex, level):
        level:   value of controlling water level or pressure for level controls
                 or of time of control action (in seconds) for time-based controls.
     """
-    ierr = _lib.ENsetcontrol(ctypes.c_int(cindex),
+    ierr = tlib.ENsetcontrol(ctypes.c_int(cindex),
                              ctypes.c_int(ctype),
                              ctypes.c_int(lindex),
                              ctypes.c_float(setting),
@@ -524,7 +532,7 @@ def ENsetnodevalue(index, paramcode, value):
         EN_MIXFRACTION   Fraction of total volume occupied by the inlet/outlet
         EN_TANK_KBULK    Bulk reaction rate coefficient
     """
-    ierr = _lib.ENsetnodevalue(ctypes.c_int(index),
+    ierr = tlib.ENsetnodevalue(ctypes.c_int(index),
                                ctypes.c_int(paramcode),
                                ctypes.c_float(value))
     if ierr:
@@ -558,7 +566,7 @@ def ENsetlinkvalue(index, paramcode, value):
     EN_STATUS and EN_SETTING to change these values while a simulation is being
     run (within the ENrunH - ENnextH loop).
     """
-    ierr = _lib.ENsetlinkvalue(ctypes.c_int(index), ctypes.c_int(paramcode),
+    ierr = tlib.ENsetlinkvalue(ctypes.c_int(index), ctypes.c_int(paramcode),
                                ctypes.c_float(value))
     if ierr:
         raise ENtoolkitError(ierr)
@@ -577,7 +585,7 @@ def ENsetpattern(index, factors):
     cfactors = cfactors_type()
     for i in range(nfactors):
         cfactors[i] = float(factors[i])
-    ierr = _lib.ENsetpattern(ctypes.c_int(index),
+    ierr = tlib.ENsetpattern(ctypes.c_int(index),
                              cfactors,
                              ctypes.c_int(nfactors))
     if ierr:
@@ -594,7 +602,7 @@ def ENsetpatternvalue(index, period, value):
        value:  multiplier factor for the period
       """
 
-    ierr = _lib.ENsetpatternvalue(ctypes.c_int(index), ctypes.c_int(period),
+    ierr = tlib.ENsetpatternvalue(ctypes.c_int(index), ctypes.c_int(period),
                                   ctypes.c_float(value))
     if ierr:
         raise ENtoolkitError(ierr)
@@ -616,7 +624,7 @@ def ENsetqualtype(qualcode, chemname, chemunits, tracenode):
         EN_AGE   Water age analysis
         EN_TRACE Source tracing
     """
-    ierr = _lib.ENsetqualtype(ctypes.c_int(qualcode),
+    ierr = tlib.ENsetqualtype(ctypes.c_int(qualcode),
                               ctypes.c_char_p(chemname.encode()),
                               ctypes.c_char_p(chemunits.encode()),
                               ctypes.c_char_p(tracenode.encode()))
@@ -650,7 +658,7 @@ def  ENsettimeparam(paramcode, timevalue):
         EN_MAXIMUM  maximums
         EN_RANGE    ranges
     """
-    ierr = _lib.ENsettimeparam(ctypes.c_int(paramcode), ctypes.c_int(timevalue))
+    ierr = tlib.ENsettimeparam(ctypes.c_int(paramcode), ctypes.c_int(timevalue))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -667,7 +675,7 @@ def ENsetoption(optioncode, value):
                                 EN_DEMANDMULT
         value:  option value
       """
-    ierr = _lib.ENsetoption(ctypes.c_int(optioncode), ctypes.c_float(value))
+    ierr = tlib.ENsetoption(ctypes.c_int(optioncode), ctypes.c_float(value))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -680,7 +688,7 @@ def ENsavehydfile(fname):
     fname: name of the file where the hydraulics results should be saved
 
     """
-    ierr = _lib.ENsavehydfile(ctypes.c_char_p(fname.encode()))
+    ierr = tlib.ENsavehydfile(ctypes.c_char_p(fname.encode()))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -693,7 +701,7 @@ def  ENusehydfile(fname):
     fname: name of the file containing hydraulic analysis results for the
            current network
     """
-    ierr = _lib.ENusehydfile(ctypes.c_char_p(fname.encode()))
+    ierr = tlib.ENusehydfile(ctypes.c_char_p(fname.encode()))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -702,7 +710,7 @@ def ENsolveH():
     """Runs a complete hydraulic simulation with results for all time periods
     written to the binary Hydraulics file.
     """
-    ierr = _lib.ENsolveH()
+    ierr = tlib.ENsolveH()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -710,7 +718,7 @@ def ENsolveH():
 def ENopenH():
     """Opens the hydraulics analysis system.
     """
-    ierr = _lib.ENopenH()
+    ierr = tlib.ENopenH()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -730,7 +738,7 @@ def ENinitH(flag=None):
     EN_INITFLOW         re-initialize flows, do not save results to file
     EN_SAVE+EN_INITFLOW re-initialize flows, save results to file
     """
-    ierr = _lib.ENinitH(flag)
+    ierr = tlib.ENinitH(flag)
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -741,7 +749,7 @@ def ENrunH():
     Runs a single period hydraulic analysis. First step in ENrunH - ENnextH loop.
     """
     t = ctypes.c_long()
-    ierr = _lib.ENrunH(ctypes.byref(t))
+    ierr = tlib.ENrunH(ctypes.byref(t))
     if ierr >= 100:
         raise ENtoolkitError(ierr)
     if ierr > 0:
@@ -759,7 +767,7 @@ def ENnextH():
 
     """
     deltat = ctypes.c_long()
-    ierr = _lib.ENnextH(ctypes.byref(deltat))
+    ierr = tlib.ENnextH(ctypes.byref(deltat))
     if ierr:
         raise ENtoolkitError(ierr)
     return deltat.value
@@ -768,7 +776,7 @@ def ENnextH():
 def ENcloseH():
     """Closes the hydraulic analysis system, freeing all allocated memory.
     """
-    ierr = _lib.ENcloseH()
+    ierr = tlib.ENcloseH()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -777,7 +785,7 @@ def ENsolveQ():
     """Runs a complete water quality simulation with results at uniform
     reporting intervals written to EPANET's binary Output file.
     """
-    ierr = _lib.ENsolveQ()
+    ierr = tlib.ENsolveQ()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -785,7 +793,7 @@ def ENsolveQ():
 def ENopenQ():
     """Opens the water quality analysis system.
     """
-    ierr = _lib.ENopenQ()
+    ierr = tlib.ENopenQ()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -802,7 +810,7 @@ def ENinitQ(flag=None):
 
     flag  EN_NOSAVE | EN_SAVE
     """
-    ierr = _lib.ENinitQ(flag)
+    ierr = tlib.ENinitQ(flag)
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -816,9 +824,12 @@ def ENrunQ():
     First step in ENrunQ - ENnextQ and ENrunQ - ENstepQ loop.
     """
     _t = ctypes.c_long()
-    ierr = _lib.ENrunQ(ctypes.byref(_t))
-    if ierr >= 100:  # ierr < 100 WARNING
+    ierr = tlib.ENrunQ(ctypes.byref(_t))
+    if ierr >= 100:
         raise ENtoolkitError(ierr)
+    if ierr > 0:
+        return ENgeterror(ierr)
+
     return _t.value
 
 def ENnextQ():
@@ -829,7 +840,7 @@ def ENnextQ():
     time period. Consecutive step in ENrunQ - ENnextQ loop.
     """
     _deltat = ctypes.c_long()
-    ierr = _lib.ENnextQ(ctypes.byref(_deltat))
+    ierr = tlib.ENnextQ(ctypes.byref(_deltat))
     if ierr:
         raise ENtoolkitError(ierr)
     return _deltat.value
@@ -843,7 +854,7 @@ def ENstepQ():
     - ENstepQ loop
     """
     _tleft = ctypes.c_long()
-    ierr = _lib.ENnextQ(ctypes.byref(_tleft))
+    ierr = tlib.ENnextQ(ctypes.byref(_tleft))
     if ierr:
         raise ENtoolkitError(ierr)
     return _tleft.value
@@ -852,7 +863,7 @@ def ENstepQ():
 def ENcloseQ():
     """Closes the water quality analysis system, freeing all allocated memory.
     """
-    ierr = _lib.ENcloseQ()
+    ierr = tlib.ENcloseQ()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -862,7 +873,7 @@ def ENsaveH():
     file to the binary output file, where results are only reported at uniform
     reporting intervals.
     """
-    ierr = _lib.ENsaveH()
+    ierr = tlib.ENsaveH()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -875,7 +886,7 @@ def ENsaveinpfile(fname):
     ---------
     fname: name of the file where data is saved
     """
-    ierr = _lib.ENsaveinpfile(ctypes.c_char_p(fname.encode()))
+    ierr = tlib.ENsaveinpfile(ctypes.c_char_p(fname.encode()))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -883,7 +894,7 @@ def ENsaveinpfile(fname):
 def ENreport():
     """Writes a formatted text report on simulation results to the Report file.
     """
-    ierr = _lib.ENreport()
+    ierr = tlib.ENreport()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -893,7 +904,7 @@ def ENresetreport():
 
     that either appeared in the [REPORT] section of the EPANET Input file or
     were issued with the ENsetreport function"""
-    ierr = _lib.ENresetreport()
+    ierr = tlib.ENresetreport()
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -908,7 +919,7 @@ def ENsetreport(command):
     Formatting commands are the same as used in the [REPORT] section of the
     EPANET Input file.
     """
-    ierr = _lib.ENsetreport(ctypes.c_char_p(command.encode()))
+    ierr = tlib.ENsetreport(ctypes.c_char_p(command.encode()))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -923,7 +934,7 @@ def ENsetstatusreport(statuslevel):
                   1 - normal reporting
                   2 - full status reporting
     """
-    ierr = _lib.ENsetstatusreport(ctypes.c_int(statuslevel))
+    ierr = tlib.ENsetstatusreport(ctypes.c_int(statuslevel))
     if ierr:
         raise ENtoolkitError(ierr)
 
@@ -943,7 +954,7 @@ def ENgeterror(errcode):
         from 301 to 309 file error
     """
     _errmsg = ctypes.create_string_buffer(ERR_MAX_CHAR)
-    _lib.ENgeterror(errcode, ctypes.byref(_errmsg), ERR_MAX_CHAR)
+    tlib.ENgeterror(errcode, ctypes.byref(_errmsg), ERR_MAX_CHAR)
     return _errmsg.value.decode()
 
 
