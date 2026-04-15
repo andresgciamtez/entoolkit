@@ -115,11 +115,9 @@ class EPANETProject:
         self._check(_lib.EN_setnodevalue(self.ph, index, prop, ctypes.c_double(value)))
 
     def getnodevalues(self, prop: int) -> List[float]:
-        """Efficiently retrieves values for all nodes using the handle-based array API."""
+        """Retrieves values for a property for all nodes."""
         count = self.getcount(EN_NODECOUNT)
-        vals = (ctypes.c_double * (count + 1))()
-        self._check(_lib.EN_getnodevalues(self.ph, prop, vals))
-        return [float(v) for v in vals[1:]]
+        return [self.getnodevalue(i, prop) for i in range(1, count + 1)]
 
     def addnode(self, node_id: str, node_type: int) -> int:
         index = ctypes.c_int()
@@ -147,11 +145,9 @@ class EPANETProject:
         self._check(_lib.EN_setlinkvalue(self.ph, index, prop, ctypes.c_double(value)))
 
     def getlinkvalues(self, prop: int) -> List[float]:
-        """Efficiently retrieves values for all links using the handle-based array API."""
+        """Retrieves values for a property for all links."""
         count = self.getcount(EN_LINKCOUNT)
-        vals = (ctypes.c_double * (count + 1))()
-        self._check(_lib.EN_getlinkvalues(self.ph, prop, vals))
-        return [float(v) for v in vals[1:]]
+        return [self.getlinkvalue(i, prop) for i in range(1, count + 1)]
 
     def getcount(self, obj_type: int) -> int:
         count = ctypes.c_int()
