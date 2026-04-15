@@ -1,5 +1,7 @@
-﻿include README.md
+include README.md
 include LICENSE
-include entoolkit/epanet/Darwin/*
-include entoolkit/epanet/Linux/*
-include entoolkit/epanet/Windows/*
+include entoolkit/epanet/darwin-x64/*
+include entoolkit/epanet/darwin-arm64/*
+include entoolkit/epanet/linux-x64/*
+include entoolkit/epanet/windows-x64/*
+include entoolkit/epanet/windows-x86/*
