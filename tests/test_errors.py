@@ -5,7 +5,7 @@ def test_modern_invalid_node_id(project, net1_path):
     project.open(net1_path)
     with pytest.raises(Exception) as excinfo:
         project.getnodeindex("NON_EXISTENT_NODE")
-    assert "EPANET Error 203" in str(excinfo.value)
+    assert "203" in str(excinfo.value) and "undefined node" in str(excinfo.value).lower()
 
 def test_modern_invalid_property_value(project, net1_path):
     project.open(net1_path)

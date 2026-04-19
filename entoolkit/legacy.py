@@ -22,6 +22,7 @@ _Pchar = ctypes.c_char_p
 _Pint = ctypes.POINTER(ctypes.c_int)
 _Plong = ctypes.POINTER(ctypes.c_long)
 _Pfloat = ctypes.POINTER(ctypes.c_float)
+_Pdouble = ctypes.POINTER(ctypes.c_double)
 
 # --- Library Loading ---
 
@@ -203,12 +204,12 @@ _funcs_argtypes = {
     "ENsettag": [ctypes.c_int, ctypes.c_int, _Pchar],
     "ENsetjuncdata": [ctypes.c_int, ctypes.c_float, ctypes.c_float, _Pchar],
     "ENsettankdata": [ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, _Pchar],
-    "ENgetcoord": [ctypes.c_int, _Pfloat, _Pfloat],
-    "ENsetcoord": [ctypes.c_int, ctypes.c_float, ctypes.c_float],
+    "ENgetcoord": [ctypes.c_int, _Pdouble, _Pdouble],
+    "ENsetcoord": [ctypes.c_int, ctypes.c_double, ctypes.c_double],
     "ENsetpipedata": [ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float],
     "ENgetvertexcount": [ctypes.c_int, _Pint],
-    "ENgetvertex": [ctypes.c_int, ctypes.c_int, _Pfloat, _Pfloat],
-    "ENsetvertex": [ctypes.c_int, ctypes.c_int, ctypes.c_float, ctypes.c_float],
+    "ENgetvertex": [ctypes.c_int, ctypes.c_int, _Pdouble, _Pdouble],
+    "ENsetvertex": [ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double],
     "ENsetvertices": [ctypes.c_int, _Pfloat, _Pfloat, ctypes.c_int],
     "ENgetpatternid": [ctypes.c_int, _Pchar],
     "ENgetpatternindex": [_Pchar, _Pint],
@@ -234,6 +235,8 @@ _funcs_argtypes = {
     "ENsetcontrol": [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_float, ctypes.c_int, ctypes.c_float],
     "ENdeletenode": [ctypes.c_int, ctypes.c_int],
     "ENdeletelink": [ctypes.c_int, ctypes.c_int],
+    "ENgettitle": [_Pchar, _Pchar, _Pchar],
+    "ENsettitle": [_Pchar, _Pchar, _Pchar],
 }
 
 for name, args in _funcs_argtypes.items():
@@ -262,7 +265,7 @@ class ENtoolkitError(Exception):
         else:
             try:
                 self.message = ENgeterror(int(self.ierr))
-            except:
+            except Exception:
                 self.message = f"Toolkit Error {self.ierr}"
         super().__init__(self.message)
         
@@ -479,6 +482,8 @@ def ENsetjuncdata(index: int, elev: float, dmnd: float, dmndpat: str) -> None:
 def ENsettankdata(index: int, elevation: float, init_level: float, min_level: float,
                   max_level: float, diameter: float, min_vol: float, vol_curve: str) -> None:
     """Sets tank parameters."""
+    if not hasattr(_lib, "ENsettankdata"):
+        raise ENtoolkitError(202, "ENsettankdata not supported by this library version")
     ierr = _lib.ENsettankdata(index, ctypes.c_float(elevation),
                               ctypes.c_float(init_level), ctypes.c_float(min_level),
                               ctypes.c_float(max_level), ctypes.c_float(diameter),
@@ -501,7 +506,7 @@ def ENsetcoord(index: int, x: float, y: float) -> None:
     """Sets the coordinates of a specific node."""
     if not hasattr(_lib, "ENsetcoord"):
         raise ENtoolkitError(202, "ENsetcoord not supported by this library version")
-    ierr = _lib.ENsetcoord(index, ctypes.c_float(x), ctypes.c_float(y))
+    ierr = _lib.ENsetcoord(index, ctypes.c_double(x), ctypes.c_double(y))
     if ierr != 0:
         raise ENtoolkitError(ierr)
 
@@ -610,6 +615,8 @@ def ENdeletelink(index: int, action_code: int) -> None:
 
 def ENsetpipedata(index: int, length: float, diameter: float, roughness: float, mloss: float) -> None:
     """Sets pipe parameters."""
+    if not hasattr(_lib, "ENsetpipedata"):
+        raise ENtoolkitError(202, "ENsetpipedata not supported by this library version")
     ierr = _lib.ENsetpipedata(index, ctypes.c_float(length), ctypes.c_float(diameter),
                               ctypes.c_float(roughness), ctypes.c_float(mloss))
     if ierr != 0:
@@ -618,6 +625,8 @@ def ENsetpipedata(index: int, length: float, diameter: float, roughness: float, 
 
 def ENgetvertexcount(index: int) -> int:
     """Gets the number of vertices for a link."""
+    if not hasattr(_lib, "ENgetvertexcount"):
+        raise ENtoolkitError(202, "ENgetvertexcount not supported by this library version")
     count_ptr = ctypes.c_int()
     ierr = _lib.ENgetvertexcount(index, ctypes.byref(count_ptr))
     if ierr != 0:
@@ -627,6 +636,8 @@ def ENgetvertexcount(index: int) -> int:
 
 def ENgetvertex(index: int, vertex: int) -> Tuple[float, float]:
     """Gets the X, Y coordinates for a link vertex."""
+    if not hasattr(_lib, "ENgetvertex"):
+        raise ENtoolkitError(202, "ENgetvertex not supported by this library version")
     x = ctypes.c_double()
     y = ctypes.c_double()
     ierr = _lib.ENgetvertex(index, vertex, ctypes.byref(x), ctypes.byref(y))
@@ -637,6 +648,8 @@ def ENgetvertex(index: int, vertex: int) -> Tuple[float, float]:
 
 def ENsetvertex(index: int, vertex: int, x: float, y: float) -> None:
     """Sets the X, Y coordinates for a link vertex."""
+    if not hasattr(_lib, "ENsetvertex"):
+        raise ENtoolkitError(202, "ENsetvertex not supported by this library version")
     ierr = _lib.ENsetvertex(index, vertex, ctypes.c_double(x), ctypes.c_double(y))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -698,12 +711,15 @@ def ENgetpatternvalue(index: int, period: int) -> float:
 
 
 def ENaddpattern(pattern_id: str) -> int:
-    """Adds a new time pattern to the network."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddpattern(ctypes.c_char_p(pattern_id.encode()), ctypes.byref(index_ptr))
+    """Adds a new time pattern to the network.
+    
+    Note: The legacy C API does not return the index directly.
+    After adding, we retrieve it with ENgetpatternindex.
+    """
+    ierr = _lib.ENaddpattern(ctypes.c_char_p(pattern_id.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
-    return index_ptr.value
+    return ENgetpatternindex(pattern_id)
 
 
 def ENdeletepattern(index: int) -> None:
@@ -730,12 +746,15 @@ def ENsetpatternvalue(index: int, period: int, value: float) -> None:
 
 
 def ENaddcurve(curve_id: str) -> int:
-    """Adds a new data curve to the network."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddcurve(ctypes.c_char_p(curve_id.encode()), ctypes.byref(index_ptr))
+    """Adds a new data curve to the network.
+    
+    Note: The legacy C API does not return the index directly.
+    After adding, we retrieve it with ENgetcurveindex.
+    """
+    ierr = _lib.ENaddcurve(ctypes.c_char_p(curve_id.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
-    return index_ptr.value
+    return ENgetcurveindex(curve_id)
 
 
 def ENdeletecurve(index: int) -> None:
@@ -1031,6 +1050,12 @@ def ENsetreport(command: str) -> None:
         raise ENtoolkitError(ierr)
 
 
+def ENwriteline(line: str) -> None:
+    """Writes a line of text to the report file."""
+    ierr = _lib.ENwriteline(ctypes.c_char_p(line.encode()))
+    if ierr != 0:
+        raise ENtoolkitError(ierr)
+
 # --- Convenience functions for missing array exports ---
 
 def ENgetnodevalues(property_code: int) -> List[float]:
@@ -1140,6 +1165,8 @@ def ENgetdemandmodel() -> Tuple[int, float, float, float]:
     Returns:
         Tuple[int, float, float, float]: (model_type, pmin, preq, pexp).
     """
+    if not hasattr(_lib, "ENgetdemandmodel"):
+        raise ENtoolkitError(202, "ENgetdemandmodel not supported by this library version")
     model = ctypes.c_int()
     pmin = ctypes.c_float()
     preq = ctypes.c_float()
@@ -1160,6 +1187,8 @@ def ENsetdemandmodel(model: int, pmin: float, preq: float, pexp: float) -> None:
         preq (float): Required pressure.
         pexp (float): Pressure exponent.
     """
+    if not hasattr(_lib, "ENsetdemandmodel"):
+        raise ENtoolkitError(202, "ENsetdemandmodel not supported by this library version")
     ierr = _lib.ENsetdemandmodel(model, ctypes.c_float(pmin),
                                  ctypes.c_float(preq), ctypes.c_float(pexp))
     if ierr:
