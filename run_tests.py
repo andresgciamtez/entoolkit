@@ -1,22 +1,22 @@
 import unittest
 import os
 import threading
-from entoolkit import toolkit, EPANETProject, constants
+from entoolkit import legacy, EPANETProject, constants
 
 NET1_PATH = os.path.join(os.path.dirname(__file__), "tests", "networks", "Net1.inp")
 
 class TestEntoolkit(unittest.TestCase):
     
     def test_01_version(self):
-        self.assertEqual(toolkit.ENgetversion(), 20200)
+        self.assertEqual(legacy.ENgetversion(), 20200)
 
     def test_02_legacy_sim(self):
-        toolkit.ENopen(NET1_PATH, "test_legacy.rpt", "")
-        toolkit.ENsolveH()
-        idx = toolkit.ENgetnodeindex("10")
-        pressure = toolkit.ENgetnodevalue(idx, constants.EN_PRESSURE)
+        legacy.ENopen(NET1_PATH, "test_legacy.rpt", "")
+        legacy.ENsolveH()
+        idx = legacy.ENgetnodeindex("10")
+        pressure = legacy.ENgetnodevalue(idx, constants.EN_PRESSURE)
         self.assertGreater(pressure, 0)
-        toolkit.ENclose()
+        legacy.ENclose()
         if os.path.exists("test_legacy.rpt"): os.remove("test_legacy.rpt")
 
     def test_03_project_precision(self):

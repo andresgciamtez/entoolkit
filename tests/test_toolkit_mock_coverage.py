@@ -125,10 +125,10 @@ def test_toolkit_full_mock_coverage_v2():
         project.delete()
         project.delete() # Re-call check
 
-    # Error branches
-    mock_lib.EN_createproject.side_effect = lambda ph: 105
-    with pytest.raises(ENtoolkitError):
-        toolkit.EPANETProject()
+        # Error branches
+        mock_lib.EN_createproject.side_effect = lambda ph: 105
+        with pytest.raises(ENtoolkitError):
+            toolkit.EPANETProject()
 
 def test_toolkit_del_v2():
     p = toolkit.EPANETProject()

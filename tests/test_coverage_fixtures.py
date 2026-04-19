@@ -21,14 +21,8 @@ def test_legacy_convenience_loops():
     from entoolkit import legacy
     import unittest.mock as mock
     
-    mock_lib = mock.MagicMock()
-    def mock_val(c, p): 
-        p.contents.value = 5 # count = 5
-        return 0
-    mock_lib.ENgetcount.side_effect = mock_val
-    mock_lib.ENgetnodevalue.return_value = 0
-    mock_lib.ENgetlinkvalue.return_value = 0
-    
-    with mock.patch("entoolkit.legacy._lib", mock_lib):
-        legacy.ENgetnodevalues(0)
-        legacy.ENgetlinkvalues(0)
+    with mock.patch("entoolkit.legacy.ENgetcount", return_value=5):
+        with mock.patch("entoolkit.legacy.ENgetnodevalue", return_value=0.0):
+            with mock.patch("entoolkit.legacy.ENgetlinkvalue", return_value=0.0):
+                legacy.ENgetnodevalues(0)
+                legacy.ENgetlinkvalues(0)

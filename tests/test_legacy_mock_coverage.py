@@ -122,7 +122,6 @@ def test_legacy_all_mocked_success():
         legacy.ENgetlinkvalues(0)
         legacy.ENepanet("f", "r", "b")
         legacy.ENwriteline("l")
-        legacy.ENcopyfile("a","b")
 
 def test_missing_functions_final():
     """Trigger every single hasattr check fail in legacy.py."""
@@ -187,8 +186,8 @@ def test_missing_functions_final():
 def test_legacy_extra_loops():
     from entoolkit import legacy
     import unittest.mock as mock
-    mock_lib = mock.MagicMock()
-    mock_lib.ENgetcount.side_effect = lambda t, p: setattr(p.contents, 'value', 3) or 0
-    with mock.patch("entoolkit.legacy._lib", mock_lib):
-        legacy.ENgetnodevalues(0)
-        legacy.ENgetlinkvalues(0)
+    with mock.patch("entoolkit.legacy.ENgetcount", return_value=3):
+        with mock.patch("entoolkit.legacy.ENgetnodevalue", return_value=0.0):
+            with mock.patch("entoolkit.legacy.ENgetlinkvalue", return_value=0.0):
+                legacy.ENgetnodevalues(0)
+                legacy.ENgetlinkvalues(0)

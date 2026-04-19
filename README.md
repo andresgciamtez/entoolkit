@@ -119,5 +119,5 @@ Bundled EPANET binaries are subject to their respective licenses (Public Domain 
 ---
 
 ## Documentation
-- [Official EPANET 2.2 Manual](https://epanet22.readthedocs.io/)
-- [EPANET 2.2 Toolkit API Reference](https://github.com/OpenWaterAnalytics/EPANET/wiki/EPANET-2.2-Toolkit-Functions)
+- [Official EPANET 2.2 Manual](https://usepa.github.io/EPANET2.2/)
+- [EPANET 2.2 Toolkit API Reference](https://wateranalytics.org/EPANET/topics.html)

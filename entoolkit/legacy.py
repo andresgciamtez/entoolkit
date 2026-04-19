@@ -83,6 +83,8 @@ def ENgettitle() -> Tuple[str, str, str]:
     line1 = ctypes.create_string_buffer(MAX_TITLE_LEN + 1)
     line2 = ctypes.create_string_buffer(MAX_TITLE_LEN + 1)
     line3 = ctypes.create_string_buffer(MAX_TITLE_LEN + 1)
+    if not hasattr(_lib, "ENgettitle"):
+        raise ENtoolkitError(202, "ENgettitle not supported by this library version")
     ierr = _lib.ENgettitle(line1, line2, line3)
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -91,6 +93,8 @@ def ENgettitle() -> Tuple[str, str, str]:
 
 def ENsettitle(line1: str, line2: str, line3: str) -> None:
     """Sets the project title lines."""
+    if not hasattr(_lib, "ENsettitle"):
+        raise ENtoolkitError(202, "ENsettitle not supported by this library version")
     ierr = _lib.ENsettitle(ctypes.c_char_p(line1.encode()),
                            ctypes.c_char_p(line2.encode()),
                            ctypes.c_char_p(line3.encode()))
@@ -111,6 +115,8 @@ def ENgetcomment(obj_type: int, index: int) -> str:
 
 def ENsetcomment(obj_type: int, index: int, comment: str) -> None:
     """Sets the description comment for a network object."""
+    if not hasattr(_lib, "ENsetcomment"):
+        raise ENtoolkitError(202, "ENsetcomment not supported by this library version")
     ierr = _lib.ENsetcomment(obj_type, index, ctypes.c_char_p(comment.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -352,6 +358,8 @@ def ENgetnodeid(index: int) -> str:
     Returns:
         str: The node ID.
     """
+    if not hasattr(_lib, "ENgetnodeid"):
+        raise ENtoolkitError(202, "ENgetnodeid not supported by this library version")
     id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
     ierr = _lib.ENgetnodeid(index, id_buffer)
     if ierr != 0:
@@ -368,6 +376,8 @@ def ENgetnodetype(index: int) -> int:
     Returns:
         int: The node type code (e.g., EN_JUNCTION, EN_TANK).
     """
+    if not hasattr(_lib, "ENgetnodetype"):
+        raise ENtoolkitError(202, "ENgetnodetype not supported by this library version")
     type_ptr = ctypes.c_int()
     ierr = _lib.ENgetnodetype(index, ctypes.byref(type_ptr))
     if ierr != 0:
@@ -494,6 +504,8 @@ def ENsettankdata(index: int, elevation: float, init_level: float, min_level: fl
 
 def ENgetcoord(index: int) -> Tuple[float, float]:
     """Gets the X, Y coordinates for a node."""
+    if not hasattr(_lib, "ENgetcoord"):
+        raise ENtoolkitError(202, "ENgetcoord not supported by this library version")
     x = ctypes.c_double()
     y = ctypes.c_double()
     ierr = _lib.ENgetcoord(index, ctypes.byref(x), ctypes.byref(y))
@@ -549,6 +561,8 @@ def ENgetlinkid(index: int) -> str:
     Returns:
         str: The link ID.
     """
+    if not hasattr(_lib, "ENgetlinkid"):
+        raise ENtoolkitError(202, "ENgetlinkid not supported by this library version")
     id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
     ierr = _lib.ENgetlinkid(index, id_buffer)
     if ierr != 0:
@@ -558,6 +572,8 @@ def ENgetlinkid(index: int) -> str:
 
 def ENgetlinktype(index: int) -> int:
     """Gets the type code for a link."""
+    if not hasattr(_lib, "ENgetlinktype"):
+        raise ENtoolkitError(202, "ENgetlinktype not supported by this library version")
     type_ptr = ctypes.c_int()
     ierr = _lib.ENgetlinktype(index, ctypes.byref(type_ptr))
     if ierr != 0:
@@ -567,6 +583,8 @@ def ENgetlinktype(index: int) -> int:
 
 def ENgetlinknodes(index: int) -> Tuple[int, int]:
     """Gets the indexes of the start and end nodes of a link."""
+    if not hasattr(_lib, "ENgetlinknodes"):
+        raise ENtoolkitError(202, "ENgetlinknodes not supported by this library version")
     from_node_ptr = ctypes.c_int()
     to_node_ptr = ctypes.c_int()
     ierr = _lib.ENgetlinknodes(index, ctypes.byref(from_node_ptr), ctypes.byref(to_node_ptr))
@@ -676,6 +694,8 @@ def ENsetlinkvalue(index: int, param_code: int, value: float) -> None:
 
 def ENgetpatternid(index: int) -> str:
     """Gets the ID for a time pattern from its index."""
+    if not hasattr(_lib, "ENgetpatternid"):
+        raise ENtoolkitError(202, "ENgetpatternid not supported by this library version")
     id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
     ierr = _lib.ENgetpatternid(index, id_buffer)
     if ierr != 0:
@@ -685,6 +705,8 @@ def ENgetpatternid(index: int) -> str:
 
 def ENgetpatternindex(pattern_id: str) -> int:
     """Gets the index of a time pattern from its ID."""
+    if not hasattr(_lib, "ENgetpatternindex"):
+        raise ENtoolkitError(202, "ENgetpatternindex not supported by this library version")
     index_ptr = ctypes.c_int()
     ierr = _lib.ENgetpatternindex(ctypes.c_char_p(pattern_id.encode()), ctypes.byref(index_ptr))
     if ierr != 0:
@@ -694,6 +716,8 @@ def ENgetpatternindex(pattern_id: str) -> int:
 
 def ENgetpatternlen(index: int) -> int:
     """Gets the number of periods in a time pattern."""
+    if not hasattr(_lib, "ENgetpatternlen"):
+        raise ENtoolkitError(202, "ENgetpatternlen not supported by this library version")
     len_ptr = ctypes.c_int()
     ierr = _lib.ENgetpatternlen(index, ctypes.byref(len_ptr))
     if ierr != 0:
@@ -703,6 +727,8 @@ def ENgetpatternlen(index: int) -> int:
 
 def ENgetpatternvalue(index: int, period: int) -> float:
     """Gets the multiplier for a specific pattern period."""
+    if not hasattr(_lib, "ENgetpatternvalue"):
+        raise ENtoolkitError(202, "ENgetpatternvalue not supported by this library version")
     value_ptr = ctypes.c_float()
     ierr = _lib.ENgetpatternvalue(index, period, ctypes.byref(value_ptr))
     if ierr != 0:
@@ -716,6 +742,8 @@ def ENaddpattern(pattern_id: str) -> int:
     Note: The legacy C API does not return the index directly.
     After adding, we retrieve it with ENgetpatternindex.
     """
+    if not hasattr(_lib, "ENaddpattern"):
+        raise ENtoolkitError(202, "ENaddpattern not supported by this library version")
     ierr = _lib.ENaddpattern(ctypes.c_char_p(pattern_id.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -724,6 +752,8 @@ def ENaddpattern(pattern_id: str) -> int:
 
 def ENdeletepattern(index: int) -> None:
     """Deletes a time pattern from the network."""
+    if not hasattr(_lib, "ENdeletepattern"):
+        raise ENtoolkitError(202, "ENdeletepattern not supported by this library version")
     ierr = _lib.ENdeletepattern(index)
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -731,6 +761,8 @@ def ENdeletepattern(index: int) -> None:
 
 def ENsetpattern(index: int, factors: List[float]) -> None:
     """Sets all multipliers for a specific pattern."""
+    if not hasattr(_lib, "ENsetpattern"):
+        raise ENtoolkitError(202, "ENsetpattern not supported by this library version")
     num_factors = len(factors)
     cfactors = (ctypes.c_float * num_factors)(*factors)
     ierr = _lib.ENsetpattern(index, cfactors, num_factors)
@@ -740,6 +772,8 @@ def ENsetpattern(index: int, factors: List[float]) -> None:
 
 def ENsetpatternvalue(index: int, period: int, value: float) -> None:
     """Sets the multiplier for a specific pattern period."""
+    if not hasattr(_lib, "ENsetpatternvalue"):
+        raise ENtoolkitError(202, "ENsetpatternvalue not supported by this library version")
     ierr = _lib.ENsetpatternvalue(index, period, ctypes.c_float(value))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -751,6 +785,8 @@ def ENaddcurve(curve_id: str) -> int:
     Note: The legacy C API does not return the index directly.
     After adding, we retrieve it with ENgetcurveindex.
     """
+    if not hasattr(_lib, "ENaddcurve"):
+        raise ENtoolkitError(202, "ENaddcurve not supported by this library version")
     ierr = _lib.ENaddcurve(ctypes.c_char_p(curve_id.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -759,6 +795,8 @@ def ENaddcurve(curve_id: str) -> int:
 
 def ENdeletecurve(index: int) -> None:
     """Deletes a data curve from the network."""
+    if not hasattr(_lib, "ENdeletecurve"):
+        raise ENtoolkitError(202, "ENdeletecurve not supported by this library version")
     ierr = _lib.ENdeletecurve(index)
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -766,6 +804,8 @@ def ENdeletecurve(index: int) -> None:
 
 def ENgetcurveindex(curve_id: str) -> int:
     """Gets the index of a data curve from its ID."""
+    if not hasattr(_lib, "ENgetcurveindex"):
+        raise ENtoolkitError(202, "ENgetcurveindex not supported by this library version")
     index_ptr = ctypes.c_int()
     ierr = _lib.ENgetcurveindex(ctypes.c_char_p(curve_id.encode()), ctypes.byref(index_ptr))
     if ierr != 0:
@@ -775,6 +815,8 @@ def ENgetcurveindex(curve_id: str) -> int:
 
 def ENgetcurveid(index: int) -> str:
     """Gets the ID for a data curve from its index."""
+    if not hasattr(_lib, "ENgetcurveid"):
+        raise ENtoolkitError(202, "ENgetcurveid not supported by this library version")
     id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
     ierr = _lib.ENgetcurveid(index, id_buffer)
     if ierr != 0:
@@ -784,6 +826,8 @@ def ENgetcurveid(index: int) -> str:
 
 def ENgetcurvelen(index: int) -> int:
     """Gets the number of points in a data curve."""
+    if not hasattr(_lib, "ENgetcurvelen"):
+        raise ENtoolkitError(202, "ENgetcurvelen not supported by this library version")
     len_ptr = ctypes.c_int()
     ierr = _lib.ENgetcurvelen(index, ctypes.byref(len_ptr))
     if ierr != 0:
@@ -793,6 +837,8 @@ def ENgetcurvelen(index: int) -> int:
 
 def ENgetcurvetype(index: int) -> int:
     """Gets the type of a data curve."""
+    if not hasattr(_lib, "ENgetcurvetype"):
+        raise ENtoolkitError(202, "ENgetcurvetype not supported by this library version")
     type_ptr = ctypes.c_int()
     ierr = _lib.ENgetcurvetype(index, ctypes.byref(type_ptr))
     if ierr != 0:
@@ -802,6 +848,8 @@ def ENgetcurvetype(index: int) -> int:
 
 def ENsetcurvetype(index: int, type_code: int) -> None:
     """Sets the type of a data curve."""
+    if not hasattr(_lib, "ENsetcurvetype"):
+        raise ENtoolkitError(202, "ENsetcurvetype not supported by this library version")
     ierr = _lib.ENsetcurvetype(index, type_code)
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -809,6 +857,8 @@ def ENsetcurvetype(index: int, type_code: int) -> None:
 
 def ENgetcurvevalue(index: int, point_index: int) -> Tuple[float, float]:
     """Gets the X and Y values for a point in a data curve."""
+    if not hasattr(_lib, "ENgetcurvevalue"):
+        raise ENtoolkitError(202, "ENgetcurvevalue not supported by this library version")
     x = ctypes.c_float()
     y = ctypes.c_float()
     ierr = _lib.ENgetcurvevalue(index, point_index, ctypes.byref(x), ctypes.byref(y))
@@ -819,6 +869,8 @@ def ENgetcurvevalue(index: int, point_index: int) -> Tuple[float, float]:
 
 def ENsetcurvevalue(index: int, point_index: int, x: float, y: float) -> None:
     """Sets the X and Y values for a point in a data curve."""
+    if not hasattr(_lib, "ENsetcurvevalue"):
+        raise ENtoolkitError(202, "ENsetcurvevalue not supported by this library version")
     ierr = _lib.ENsetcurvevalue(index, point_index, ctypes.c_float(x), ctypes.c_float(y))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -842,6 +894,8 @@ def ENgetcount(count_code: int) -> int:
 
 def ENgetflowunits() -> int:
     """Gets the flow units code for the project."""
+    if not hasattr(_lib, "ENgetflowunits"):
+        raise ENtoolkitError(202, "ENgetflowunits not supported by this library version")
     units_ptr = ctypes.c_int()
     ierr = _lib.ENgetflowunits(ctypes.byref(units_ptr))
     if ierr != 0:
@@ -902,6 +956,8 @@ def ENsetoption(option_code: int, value: float) -> None:
 
 def ENgetversion() -> int:
     """Gets the version number of the EPANET toolkit."""
+    if not hasattr(_lib, "ENgetversion"):
+        raise ENtoolkitError(202, "ENgetversion not supported by this library version")
     version_ptr = ctypes.c_int()
     ierr = _lib.ENgetversion(ctypes.byref(version_ptr))
     if ierr != 0:
@@ -1003,6 +1059,8 @@ def ENcloseQ() -> None:
 
 def ENsaveH() -> None:
     """Saves hydraulic results."""
+    if not hasattr(_lib, "ENsaveH"):
+        raise ENtoolkitError(202, "ENsaveH not supported by this library version")
     ierr = _lib.ENsaveH()
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -1010,6 +1068,8 @@ def ENsaveH() -> None:
 
 def ENsaveinpfile(file_name: str) -> None:
     """Saves current network state as an .inp file."""
+    if not hasattr(_lib, "ENsaveinpfile"):
+        raise ENtoolkitError(202, "ENsaveinpfile not supported by this library version")
     ierr = _lib.ENsaveinpfile(ctypes.c_char_p(file_name.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -1017,6 +1077,8 @@ def ENsaveinpfile(file_name: str) -> None:
 
 def ENsavehydfile(file_name: str) -> None:
     """Saves binary hydraulics results."""
+    if not hasattr(_lib, "ENsavehydfile"):
+        raise ENtoolkitError(202, "ENsavehydfile not supported by this library version")
     ierr = _lib.ENsavehydfile(ctypes.c_char_p(file_name.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -1024,6 +1086,8 @@ def ENsavehydfile(file_name: str) -> None:
 
 def ENusehydfile(file_name: str) -> None:
     """Uses a pre-calculated hydraulics binary file."""
+    if not hasattr(_lib, "ENusehydfile"):
+        raise ENtoolkitError(202, "ENusehydfile not supported by this library version")
     ierr = _lib.ENusehydfile(ctypes.c_char_p(file_name.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -1086,6 +1150,8 @@ def ENaddcontrol(type: int, link_index: int, setting: float, node_index: int, le
         int: The index of the newly added control.
     """
     index_ptr = ctypes.c_int()
+    if not hasattr(_lib, "ENaddcontrol"):
+        raise ENtoolkitError(202, "ENaddcontrol not supported by this library version")
     ierr = _lib.ENaddcontrol(type, link_index, ctypes.c_float(setting),
                              node_index, ctypes.c_float(level), ctypes.byref(index_ptr))
     if ierr != 0:
@@ -1099,6 +1165,8 @@ def ENdeletecontrol(index: int) -> None:
     Args:
         index (int): The index of the control to delete.
     """
+    if not hasattr(_lib, "ENdeletecontrol"):
+        raise ENtoolkitError(202, "ENdeletecontrol not supported by this library version")
     ierr = _lib.ENdeletecontrol(index)
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -1113,6 +1181,8 @@ def ENgetcontrol(index: int) -> Tuple[int, int, float, int, float]:
     Returns:
         Tuple[int, int, float, int, float]: (type, link_index, setting, node_index, level).
     """
+    if not hasattr(_lib, "ENgetcontrol"):
+        raise ENtoolkitError(202, "ENgetcontrol not supported by this library version")
     type_ptr = ctypes.c_int()
     link_ptr = ctypes.c_int()
     setting_ptr = ctypes.c_float()
@@ -1137,6 +1207,8 @@ def ENsetcontrol(index: int, type: int, link_index: int, setting: float, node_in
         node_index (int): Node index.
         level (float): Control trigger level.
     """
+    if not hasattr(_lib, "ENsetcontrol"):
+        raise ENtoolkitError(202, "ENsetcontrol not supported by this library version")
     ierr = _lib.ENsetcontrol(index, type, link_index, ctypes.c_float(setting),
                              node_index, ctypes.c_float(level))
     if ierr != 0:
@@ -1191,7 +1263,7 @@ def ENsetdemandmodel(model: int, pmin: float, preq: float, pexp: float) -> None:
         raise ENtoolkitError(202, "ENsetdemandmodel not supported by this library version")
     ierr = _lib.ENsetdemandmodel(model, ctypes.c_float(pmin),
                                  ctypes.c_float(preq), ctypes.c_float(pexp))
-    if ierr:
+    if ierr != 0:
         raise ENtoolkitError(ierr)
 
 
