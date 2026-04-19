@@ -3,27 +3,27 @@
 Python extension for the **EPANET 2.2** Programmer Toolkit.
 
 `entoolkit` provides a Pythonic wrapper around the EPANET hydraulic simulation engine. It includes two distinct APIs to suit different needs:
-1. **Legacy API (`toolkit.py`)**: A direct 1-to-1 mapping of the traditional EPANET functions (global state).
-2. **Handle-Based API (`EPANETProject`)**: A modern, thread-safe, and high-precision interface (64-bit) that allows managing multiple projects simultaneously.
+1.  **Modern Handle-Based API (`entoolkit.toolkit`)**: A thread-safe, high-precision interface (64-bit double) that allows managing multiple projects simultaneously. **(Recommended)**
+2.  **Legacy Global-State API (`entoolkit.legacy`)**: A direct mapping of the traditional EPANET functions for quick scripts and backwards compatibility.
 
 ---
 
 ## Installation
 
-Currently, you can install the package by cloning the repository and running:
+Currently, you can install the package by cloning the repository and installing it in editable mode, or via pip (if published):
 
 ```bash
-pip install .
+pip install -e .
 ```
 
-The package comes pre-bundled with 64-bit and 32-bit binaries for **Windows**, **Linux**, and **macOS** (Intel & Apple Silicon).
+The package comes pre-bundled with 64-bit binaries for **Windows**, **Linux**, and **macOS** (Intel & Apple Silicon).
 
 ---
 
 ## Quick Start
 
-### 1. Thread-Safe API (Recommended)
-This API uses the new EPANET 2.2 handle system and supports `double` precision.
+### 1. Modern API (Recommended)
+This API uses the new EPANET 2.2 handle system, supports thread-safe operations, and utilizes **double precision** (`double`) for higher numerical accuracy.
 
 ```python
 from entoolkit import EPANETProject, EN_PRESSURE
@@ -37,8 +37,9 @@ proj.open("networks/Net1.inp", "report.rpt", "out.bin")
 # Solve hydraulics
 proj.solveH()
 
-# Retrieve pressures for all nodes (efficiently)
+# Retrieve pressures for all nodes efficiently
 pressures = proj.getnodevalues(EN_PRESSURE)
+print(f"Nodes count: {len(pressures)}")
 
 # Close and free memory
 proj.close()
@@ -46,15 +47,34 @@ proj.delete()
 ```
 
 ### 2. Legacy API
-Identical to the classic EPANET C API.
+Provides a familiar environment for those used to the classic EPANET C API. It operates on a single global state.
 
 ```python
-from entoolkit import toolkit
+from entoolkit import legacy
 
-toolkit.ENopen("networks/Net1.inp")
-toolkit.ENsolveH()
-p = toolkit.ENgetnodevalue(1, toolkit.EN_PRESSURE)
-toolkit.ENclose()
+# Open a network
+legacy.ENopen("networks/Net1.inp", "report.rpt")
+
+# Solve hydraulics
+legacy.ENsolveH()
+
+# Retrieve a single value
+p_node_1 = legacy.ENgetnodevalue(1, legacy.EN_PRESSURE)
+
+# Close project
+legacy.ENclose()
+```
+
+## Documentation
+
+The library is fully documented using "Pythonic" docstrings (Google Style). You can access detailed information about any function, including its parameters and return values, directly from the Python REPL:
+
+```python
+from entoolkit import EPANETProject
+help(EPANETProject.open)
+
+from entoolkit import legacy
+help(legacy.ENaddnode)
 ```
 
 ---

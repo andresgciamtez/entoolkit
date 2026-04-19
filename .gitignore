@@ -27,3 +27,4 @@ temp_binaries/
 *.bin
 test_legacy.rpt
 thread_*.rpt
+entoolkit.log

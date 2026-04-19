@@ -1,16 +1,13 @@
 import os
 import pytest
-from entoolkit import toolkit
-
-# Path to Net1.inp
-NET1_PATH = os.path.join(os.path.dirname(__file__), "networks", "Net1.inp")
+from entoolkit import legacy as toolkit
 
 def test_version():
     assert toolkit.ENgetversion() == 20200
 
-def test_simulation():
+def test_simulation(net1_path):
     # Run full simulation
-    toolkit.ENopen(NET1_PATH, "test_toolkit.rpt", "")
+    toolkit.ENopen(net1_path, "test_toolkit.rpt", "")
     toolkit.ENsolveH()
     
     # Check some values
@@ -20,8 +17,6 @@ def test_simulation():
     assert pressure > 0
     
     toolkit.ENclose()
-    if os.path.exists("test_toolkit.rpt"):
-        os.remove("test_toolkit.rpt")
 
 def test_demand_api():
     toolkit.ENinit("test_demand.rpt", "", toolkit.EN_LPS, toolkit.EN_HW)
@@ -35,5 +30,3 @@ def test_demand_api():
     assert num >= 1
     
     toolkit.ENclose()
-    if os.path.exists("test_demand.rpt"):
-        os.remove("test_demand.rpt")

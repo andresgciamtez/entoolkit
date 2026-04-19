@@ -1,4 +1,13 @@
-"""Enums and constants for EPANET 2.2."""
+"""
+Enumerations and constants for the EPANET 2.2 toolkit.
+
+This module contains all the property codes, unit codes, and object type 
+constants used by both the legacy and modern EnToolkit APIs.
+"""
+
+# --- Logging Configuration ---
+LOG_MAX_SIZE_MB = 5  # Max size per log file in MB
+LOG_FILE_NAME = "entoolkit.log"
 
 # --- Size Limits ---
 EN_MAXID = 31
@@ -31,13 +40,13 @@ EN_MIXFRACTION  = 22
 EN_TANK_KBULK   = 23
 EN_TANKVOLUME   = 24
 EN_MAXVOLUME    = 25
-EN_CANOVERFLOW  = 26
-EN_DEMANDDEFICIT = 27
-EN_NODE_INCONTROL = 28
-EN_EMITTERFLOW    = 29
-EN_LEAKAGEFLOW    = 30
-EN_DEMANDFLOW     = 31
-EN_FULLDEMAND     = 32
+EN_CANOVERFLOW  = 26  # v2.2+
+EN_DEMANDDEFICIT = 27  # v2.2+
+EN_NODE_INCONTROL = 28  # v2.2+
+EN_EMITTERFLOW    = 29  # v2.2+
+EN_LEAKAGEFLOW    = 30  # v2.2+
+EN_DEMANDFLOW     = 31  # v2.2+
+EN_FULLDEMAND     = 32  # v2.2+
 
 # --- Link Properties ---
 EN_DIAMETER     = 0
@@ -63,13 +72,13 @@ EN_PUMP_HCURVE  = 19
 EN_PUMP_ECURVE  = 20
 EN_PUMP_ECOST   = 21
 EN_PUMP_EPAT    = 22
-EN_LINK_INCONTROL = 23
-EN_GPV_CURVE    = 24
-EN_PCV_CURVE    = 25
-EN_LEAK_AREA    = 26
-EN_LEAK_EXPAN   = 27
-EN_LINK_LEAKAGE = 28
-EN_VALVE_TYPE   = 29
+EN_LINK_INCONTROL = 23  # v2.2+
+EN_GPV_CURVE    = 24  # v2.2+
+EN_PCV_CURVE    = 25  # v2.2+
+EN_LEAK_AREA    = 26  # v2.2+
+EN_LEAK_EXPAN   = 27  # v2.2+
+EN_LINK_LEAKAGE = 28  # v2.2+
+EN_VALVE_TYPE   = 29  # v2.2+
 
 # --- Time Parameters ---
 EN_DURATION     = 0
@@ -86,8 +95,8 @@ EN_STARTTIME    = 10
 EN_HTIME        = 11
 EN_QTIME        = 12
 EN_HALTFLAG     = 13
-EN_NEXTEVENT    = 14
-EN_NEXTEVENTTANK = 15
+EN_NEXTEVENT    = 14  # v2.2+
+EN_NEXTEVENTTANK = 15  # v2.2+
 
 # --- Analysis Statistics ---
 EN_ITERATIONS      = 0
@@ -95,9 +104,9 @@ EN_RELATIVEERROR   = 1
 EN_MAXHEADERROR    = 2
 EN_MAXFLOWCHANGE   = 3
 EN_MASSBALANCE     = 4
-EN_DEFICIENTNODES  = 5
-EN_DEMANDREDUCTION = 6
-EN_LEAKAGELOSS     = 7
+EN_DEFICIENTNODES  = 5    # v2.2+
+EN_DEMANDREDUCTION = 6    # v2.2+
+EN_LEAKAGELOSS     = 7    # v2.2+
 
 # --- Object Types ---
 EN_NODE    = 0
@@ -173,6 +182,9 @@ EN_CMH         = 8
 EN_CMD         = 9
 EN_CMS         = 10
 
+# --- Legacy Category Code ---
+EN_FLOWUNITS    = 1
+
 # --- Pressure Units ---
 EN_PSI          = 0
 EN_KPA          = 1
@@ -181,8 +193,8 @@ EN_BAR          = 3
 EN_FEET         = 4
 
 # --- Demand Models ---
-EN_DDA         = 0
-EN_PDA         = 1
+EN_DDA         = 0    # v2.2+
+EN_PDA         = 1    # v2.2+
 
 # --- Option Types ---
 EN_TRIALS         = 0
@@ -208,10 +220,11 @@ EN_BULKORDER      = 19
 EN_WALLORDER      = 20
 EN_TANKORDER      = 21
 EN_CONCENLIMIT    = 22
-EN_DEMANDPATTERN  = 23
-EN_EMITBACKFLOW   = 24
-EN_PRESS_UNITS    = 25
-EN_STATUS_REPORT  = 26
+EN_DEMANDPATTERN  = 23  # v2.2+
+EN_EMITBACKFLOW   = 24  # v2.2+
+EN_PRESS_UNITS    = 25  # v2.2+
+EN_STATUS_REPORT  = 26  # v2.2+
+EN_DEMANDMODEL    = 27  # v2.2+
 
 # --- Control Types ---
 EN_LOWLEVEL    = 0

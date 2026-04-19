@@ -1,1022 +1,610 @@
+"""
+High-level, thread-safe interface to the EPANET 2.2 toolkit.
+
+This module provides the EPANETProject class, which uses project handles 
+to manage multiple network simulations simultaneously with double precision.
+"""
 import ctypes
-import platform
-import sys
-from pathlib import Path
-from typing import Tuple, List, Optional, Callable, Union
+import logging
+from typing import Tuple, List, Optional, Union
 
 from .constants import *
+from .legacy import _lib, ENtoolkitError, ERR_MAX_CHAR, MAX_LABEL_LEN
 
-# --- Library Loading ---
+logger = logging.getLogger("entoolkit")
 
-_OS_NAME = platform.system().lower()
-_MACHINE = platform.machine().lower()
-_BASE_PATH = Path(__file__).parent / "epanet"
+# Define core project creation/deletion types
+_lib.EN_createproject.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+_lib.EN_createproject.restype = ctypes.c_int
 
-# Architecture detection (x64, x86, arm64)
-if "arm" in _MACHINE or "aarch64" in _MACHINE:
-    _arch = "arm64" 
-elif "64" in _MACHINE:
-    _arch = "x64"
-else:
-    _arch = "x86"
+_lib.EN_deleteproject.argtypes = [ctypes.c_void_p]
+_lib.EN_deleteproject.restype = ctypes.c_int
 
-# Library selection based on platform
-if _OS_NAME == "windows":
-    _lib_path = _BASE_PATH / f"windows-{_arch}" / "epanet2.dll"
-    # Using WinDLL for __stdcall convention on Windows
-    _lib = ctypes.WinDLL(str(_lib_path))
-elif _OS_NAME == "darwin":
-    _lib_path = _BASE_PATH / f"darwin-{_arch}" / "libepanet.dylib"
-    _lib = ctypes.CDLL(str(_lib_path))
-else: # Linux
-    _lib_path = _BASE_PATH / f"linux-{_arch}" / "libepanet.so"
-    _lib = ctypes.CDLL(str(_lib_path))
+_lib.EN_geterror.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int]
+_lib.EN_geterror.restype = ctypes.c_int
 
-# --- General Constants ---
+_lib.EN_init.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
+_lib.EN_init.restype = ctypes.c_int
 
-MAX_LABEL_LEN = 15
-ERR_MAX_CHAR = 80
+_lib.EN_open.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+_lib.EN_open.restype = ctypes.c_int
 
+_lib.EN_close.argtypes = [ctypes.c_void_p]
+_lib.EN_close.restype = ctypes.c_int
 
-def ENinit(rpt_file: str, bin_file: str, units_type: int, headloss_type: int) -> None:
-    """Initializes the toolkit with a new project."""
-    ierr = _lib.ENinit(ctypes.c_char_p(rpt_file.encode()),
-                       ctypes.c_char_p(bin_file.encode()),
-                       units_type, headloss_type)
-    if ierr:
-        raise ENtoolkitError(ierr)
+_lib.EN_solveH.argtypes = [ctypes.c_void_p]
+_lib.EN_solveH.restype = ctypes.c_int
 
+_lib.EN_getnodeindex.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_getnodeindex.restype = ctypes.c_int
 
-def ENgettitle() -> Tuple[str, str, str]:
-    """Gets the project title lines."""
-    l1 = ctypes.create_string_buffer(EN_MAXMSG + 1)
-    l2 = ctypes.create_string_buffer(EN_MAXMSG + 1)
-    l3 = ctypes.create_string_buffer(EN_MAXMSG + 1)
-    ierr = _lib.ENgettitle(l1, l2, l3)
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return l1.value.decode(), l2.value.decode(), l3.value.decode()
+_lib.EN_getnodeid.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_char_p]
+_lib.EN_getnodeid.restype = ctypes.c_int
 
+_lib.EN_getnodevalue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+_lib.EN_getnodevalue.restype = ctypes.c_int
 
-def ENsettitle(line1: str, line2: str, line3: str) -> None:
-    """Sets the project title lines."""
-    ierr = _lib.ENsettitle(ctypes.c_char_p(line1.encode()),
-                           ctypes.c_char_p(line2.encode()),
-                           ctypes.c_char_p(line3.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
+_lib.EN_setnodevalue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_double]
+_lib.EN_setnodevalue.restype = ctypes.c_int
 
+_lib.EN_getlinkindex.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_getlinkindex.restype = ctypes.c_int
 
-def ENgetcomment(obj_type: int, index: int) -> str:
-    """Gets the description comment for a network object."""
-    comment = ctypes.create_string_buffer(EN_MAXMSG + 1)
-    ierr = _lib.ENgetcomment(obj_type, index, comment)
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return comment.value.decode()
+_lib.EN_getlinkid.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_char_p]
+_lib.EN_getlinkid.restype = ctypes.c_int
 
+_lib.EN_getlinkvalue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+_lib.EN_getlinkvalue.restype = ctypes.c_int
 
-def ENsetcomment(obj_type: int, index: int, comment: str) -> None:
-    """Sets the description comment for a network object."""
-    ierr = _lib.ENsetcomment(obj_type, index, ctypes.c_char_p(comment.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
+_lib.EN_setlinkvalue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_double]
+_lib.EN_setlinkvalue.restype = ctypes.c_int
 
+_lib.EN_getcount.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_getcount.restype = ctypes.c_int
 
-def ENgettag(obj_type: int, index: int) -> str:
-    """Gets the tag string for a network object."""
-    tag = ctypes.create_string_buffer(EN_MAXMSG + 1)
-    ierr = _lib.ENgettag(obj_type, index, tag)
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return tag.value.decode()
+_lib.EN_addnode.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_addnode.restype = ctypes.c_int
 
+_lib.EN_addlink.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_addlink.restype = ctypes.c_int
 
-def ENsettag(obj_type: int, index: int, tag: str) -> None:
-    """Sets the tag string for a network object."""
-    ierr = _lib.ENsettag(obj_type, index, ctypes.c_char_p(tag.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
+_lib.EN_getnumdemands.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_getnumdemands.restype = ctypes.c_int
 
+_lib.EN_getbasedemand.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+_lib.EN_getbasedemand.restype = ctypes.c_int
 
-def ENgeterror(error_code: int) -> str:
-    """Converts a toolkit error code to a readable message string."""
-    error_msg = ctypes.create_string_buffer(ERR_MAX_CHAR)
-    _lib.ENgeterror(error_code, ctypes.byref(error_msg), ERR_MAX_CHAR)
-    return error_msg.value.decode()
+_lib.EN_setbasedemand.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_double]
+_lib.EN_setbasedemand.restype = ctypes.c_int
 
+_lib.EN_adddemand.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double, ctypes.c_char_p, ctypes.c_char_p]
+_lib.EN_adddemand.restype = ctypes.c_int
 
-class ENtoolkitError(Exception):
-    """Exception raised for errors in the EPANET Toolkit.
+_lib.EN_deletedemand.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+_lib.EN_deletedemand.restype = ctypes.c_int
 
-    Attributes:
-        ierr (int): The error code returned by the toolkit.
-        warning (bool): True if the code represents a warning (< 100).
-        message (str): Descriptive error message.
+_lib.EN_setdemandmodel.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double, ctypes.c_double, ctypes.c_double]
+_lib.EN_setdemandmodel.restype = ctypes.c_int
+
+_lib.EN_setqualtype.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+_lib.EN_setqualtype.restype = ctypes.c_int
+
+_lib.EN_solveQ.argtypes = [ctypes.c_void_p]
+_lib.EN_solveQ.restype = ctypes.c_int
+
+_lib.EN_addpattern.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_addpattern.restype = ctypes.c_int
+
+_lib.EN_setpattern.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double), ctypes.c_int]
+_lib.EN_setpattern.restype = ctypes.c_int
+
+_lib.EN_getpatternvalue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+_lib.EN_getpatternvalue.restype = ctypes.c_int
+
+# --- Advanced Project Management Functions ---
+
+# Define EN_getstatistic
+_lib.EN_getstatistic.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+_lib.EN_getstatistic.restype = ctypes.c_int
+
+# Define EN_getoption
+_lib.EN_getoption.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+_lib.EN_getoption.restype = ctypes.c_int
+
+# Define EN_setoption
+_lib.EN_setoption.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
+_lib.EN_setoption.restype = ctypes.c_int
+
+# Define EN_gettitle
+_lib.EN_gettitle.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+_lib.EN_gettitle.restype = ctypes.c_int
+
+# Define EN_settitle
+_lib.EN_settitle.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+_lib.EN_settitle.restype = ctypes.c_int
+
+# Define EN_addcontrol
+_lib.EN_addcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_float, ctypes.c_int, ctypes.c_float, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_addcontrol.restype = ctypes.c_int
+
+# Define EN_getcontrol
+_lib.EN_getcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_float)]
+_lib.EN_getcontrol.restype = ctypes.c_int
+
+# Define EN_setcontrol
+_lib.EN_setcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_float, ctypes.c_int, ctypes.c_float]
+_lib.EN_setcontrol.restype = ctypes.c_int
+
+# Define EN_deletecontrol
+_lib.EN_deletecontrol.argtypes = [ctypes.c_void_p, ctypes.c_int]
+_lib.EN_deletecontrol.restype = ctypes.c_int
+
+# Define EN_getpatternindex
+_lib.EN_getpatternindex.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_getpatternindex.restype = ctypes.c_int
+
+class EPANETProject:
+    """A thread-safe interface to an EPANET project handle.
+    
+    This class wraps the EPANET 2.2 handle-based API, allowing multiple
+    projects to be managed simultaneously in the same process.
+    
+    In contrast to the legacy API (entoolkit.legacy), this class uses 
+    **double precision** (64-bit) for all property values, ensuring 
+    higher numerical accuracy.
     """
-
-    def __init__(self, ierr: int):
-        self.ierr = ierr
-        self.warning = ierr < 100
-        self.message = ENgeterror(ierr)
-        if not self.message and ierr:
-            self.message = f"ENtoolkit Undocumented Error {ierr}: check EPANET documentation/headers"
-
-    def __str__(self) -> str:
-        return self.message
-
-
-def ENepanet(inp_file: str, rpt_file: str = '', bin_file: str = '',
-             vfunc: Optional[Callable[[str], None]] = None) -> None:
-    """Runs a complete EPANET simulation.
-
-    Args:
-        inp_file: Path to the input file (.inp).
-        rpt_file: Path to the report file (.rpt).
-        bin_file: Path to the optional binary output file.
-        vfunc: Optional callback function that accepts a status string.
-    """
-    callback = None
-    if vfunc is not None:
-        cfunc = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
-        callback = cfunc(lambda msg: vfunc(msg.decode()))
-
-    ierr = _lib.ENepanet(ctypes.c_char_p(inp_file.encode()),
-                         ctypes.c_char_p(rpt_file.encode()),
-                         ctypes.c_char_p(bin_file.encode()),
-                         callback)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENopen(inp_file: str, rpt_file: str = '', bin_file: str = '') -> None:
-    """Opens an EPANET project for analysis."""
-    ierr = _lib.ENopen(ctypes.c_char_p(inp_file.encode()),
-                       ctypes.c_char_p(rpt_file.encode()),
-                       ctypes.c_char_p(bin_file.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENclose() -> None:
-    """Closes the EPANET toolkit and releases files."""
-    ierr = _lib.ENclose()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetnodeindex(node_id: str) -> int:
-    """Gets the index of a node from its ID string."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENgetnodeindex(ctypes.c_char_p(node_id.encode()), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENgetnodeid(index: int) -> str:
-    """Gets the ID string of a node from its index."""
-    id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
-    ierr = _lib.ENgetnodeid(index, ctypes.byref(id_buffer))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return id_buffer.value.decode()
-
-
-def ENgetnodetype(index: int) -> int:
-    """Gets the type code for a node."""
-    type_ptr = ctypes.c_int()
-    ierr = _lib.ENgetnodetype(index, ctypes.byref(type_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return type_ptr.value
-
-
-def ENgetnodevalue(index: int, param_code: int) -> float:
-    """Gets the value of a specific node parameter."""
-    value_ptr = ctypes.c_float()
-    ierr = _lib.ENgetnodevalue(index, param_code, ctypes.byref(value_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return float(value_ptr.value)
-
-
-def ENaddnode(node_id: str, node_type: int) -> int:
-    """Adds a new node to the network."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddnode(ctypes.c_char_p(node_id.encode()), node_type, ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENdeletenode(index: int, action_code: int) -> None:
-    """Deletes a node from the network."""
-    ierr = _lib.ENdeletenode(index, action_code)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetnodeid(index: int, new_id: str) -> None:
-    """Changes the ID for a node."""
-    ierr = _lib.ENsetnodeid(index, ctypes.c_char_p(new_id.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENadddemand(node_index: int, base_demand: float, pattern_name: str = '', demand_name: str = '') -> None:
-    """Appends a new demand to a junction node demands list."""
-    ierr = _lib.ENadddemand(node_index, ctypes.c_double(base_demand),
-                            ctypes.c_char_p(pattern_name.encode()),
-                            ctypes.c_char_p(demand_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENdeletedemand(node_index: int, demand_index: int) -> None:
-    """Deletes a demand from a junction node."""
-    ierr = _lib.ENdeletedemand(node_index, demand_index)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetnumdemands(node_index: int) -> int:
-    """Retrieves the number of demand categories for a junction node."""
-    num_demands = ctypes.c_int()
-    ierr = _lib.ENgetnumdemands(node_index, ctypes.byref(num_demands))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return num_demands.value
-
-
-def ENgetbasedemand(node_index: int, demand_index: int) -> float:
-    """Gets the base demand for one of a node's demand categories."""
-    base_demand = ctypes.c_double()
-    ierr = _lib.ENgetbasedemand(node_index, demand_index, ctypes.byref(base_demand))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return float(base_demand.value)
-
-
-def ENsetbasedemand(node_index: int, demand_index: int, base_demand: float) -> None:
-    """Sets the base demand for one of a node's demand categories."""
-    ierr = _lib.ENsetbasedemand(node_index, demand_index, ctypes.c_double(base_demand))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetjuncdata(index: int, elevation: float, demand: float, pattern_id: str) -> None:
-    """Sets junctions parameters."""
-    ierr = _lib.ENsetjuncdata(index, ctypes.c_float(elevation),
-                              ctypes.c_float(demand),
-                              ctypes.c_char_p(pattern_id.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsettankdata(index: int, elevation: float, init_level: float, min_level: float,
-                  max_level: float, diameter: float, min_vol: float, vol_curve: str) -> None:
-    """Sets tank parameters."""
-    ierr = _lib.ENsettankdata(index, ctypes.c_float(elevation),
-                              ctypes.c_float(init_level), ctypes.c_float(min_level),
-                              ctypes.c_float(max_level), ctypes.c_float(diameter),
-                              ctypes.c_float(min_vol), ctypes.c_char_p(vol_curve.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetcoord(index: int) -> Tuple[float, float]:
-    """Gets the X, Y coordinates for a node."""
-    x = ctypes.c_double()
-    y = ctypes.c_double()
-    ierr = _lib.ENgetcoord(index, ctypes.byref(x), ctypes.byref(y))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return x.value, y.value
-
-
-def ENsetcoord(index: int, x: float, y: float) -> None:
-    """Sets the X, Y coordinates for a node."""
-    ierr = _lib.ENsetcoord(index, ctypes.c_double(x), ctypes.c_double(y))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetnodevalue(index: int, param_code: int, value: float) -> None:
-    """Sets the value of a specific node parameter."""
-    ierr = _lib.ENsetnodevalue(index, param_code, ctypes.c_float(value))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetlinkindex(link_id: str) -> int:
-    """Gets the index of a link from its ID string."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENgetlinkindex(ctypes.c_char_p(link_id.encode()), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENgetlinkid(index: int) -> str:
-    """Gets the ID string of a link from its index."""
-    id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
-    ierr = _lib.ENgetlinkid(index, ctypes.byref(id_buffer))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return id_buffer.value.decode()
-
-
-def ENgetlinktype(index: int) -> int:
-    """Gets the type code for a link."""
-    type_ptr = ctypes.c_int()
-    ierr = _lib.ENgetlinktype(index, ctypes.byref(type_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return type_ptr.value
-
-
-def ENgetlinknodes(index: int) -> Tuple[int, int]:
-    """Gets the indexes of the start and end nodes of a link."""
-    from_node_ptr = ctypes.c_int()
-    to_node_ptr = ctypes.c_int()
-    ierr = _lib.ENgetlinknodes(index, ctypes.byref(from_node_ptr), ctypes.byref(to_node_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return from_node_ptr.value, to_node_ptr.value
-
-
-def ENgetlinkvalue(index: int, param_code: int) -> float:
-    """Gets the value of a specific link parameter."""
-    value_ptr = ctypes.c_float()
-    ierr = _lib.ENgetlinkvalue(index, param_code, ctypes.byref(value_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return float(value_ptr.value)
-
-
-def ENaddlink(link_id: str, link_type: int, from_node: str, to_node: str) -> int:
-    """Adds a new link to the network."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddlink(ctypes.c_char_p(link_id.encode()), link_type,
-                          ctypes.c_char_p(from_node.encode()),
-                          ctypes.c_char_p(to_node.encode()),
-                          ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENdeletelink(index: int, action_code: int) -> None:
-    """Deletes a link from the network."""
-    ierr = _lib.ENdeletelink(index, action_code)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetpipedata(index: int, length: float, diameter: float, roughness: float, mloss: float) -> None:
-    """Sets pipe parameters."""
-    ierr = _lib.ENsetpipedata(index, ctypes.c_float(length), ctypes.c_float(diameter),
-                              ctypes.c_float(roughness), ctypes.c_float(mloss))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetvertexcount(index: int) -> int:
-    """Gets the number of vertices for a link."""
-    count_ptr = ctypes.c_int()
-    ierr = _lib.ENgetvertexcount(index, ctypes.byref(count_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return count_ptr.value
-
-
-def ENgetvertex(index: int, vertex: int) -> Tuple[float, float]:
-    """Gets the X, Y coordinates for a link vertex."""
-    x = ctypes.c_double()
-    y = ctypes.c_double()
-    ierr = _lib.ENgetvertex(index, vertex, ctypes.byref(x), ctypes.byref(y))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return x.value, y.value
-
-
-def ENsetvertex(index: int, vertex: int, x: float, y: float) -> None:
-    """Sets the X, Y coordinates for a link vertex."""
-    ierr = _lib.ENsetvertex(index, vertex, ctypes.c_double(x), ctypes.c_double(y))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetvertices(index: int, x: List[float], y: List[float]) -> None:
-    """Sets all vertices for a link."""
-    count = len(x)
-    cx = (ctypes.c_double * count)(*x)
-    cy = (ctypes.c_double * count)(*y)
-    ierr = _lib.ENsetvertices(index, cx, cy, count)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetlinkvalue(index: int, param_code: int, value: float) -> None:
-    """Sets the value of a specific link parameter."""
-    ierr = _lib.ENsetlinkvalue(index, param_code, ctypes.c_float(value))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetpatternid(index: int) -> str:
-    """Gets the ID string of a time pattern."""
-    id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
-    ierr = _lib.ENgetpatternid(index, ctypes.byref(id_buffer))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return id_buffer.value.decode()
-
-
-def ENgetpatternindex(pattern_id: str) -> int:
-    """Gets the index of a time pattern from its ID."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENgetpatternindex(ctypes.c_char_p(pattern_id.encode()), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENgetpatternlen(index: int) -> int:
-    """Gets the number of periods in a time pattern."""
-    len_ptr = ctypes.c_int()
-    ierr = _lib.ENgetpatternlen(index, ctypes.byref(len_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return len_ptr.value
-
-
-def ENgetpatternvalue(index: int, period: int) -> float:
-    """Gets the multiplier for a specific pattern period."""
-    value_ptr = ctypes.c_float()
-    ierr = _lib.ENgetpatternvalue(index, period, ctypes.byref(value_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return float(value_ptr.value)
-
-
-def ENaddpattern(pattern_id: str) -> int:
-    """Adds a new time pattern to the network."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddpattern(ctypes.c_char_p(pattern_id.encode()), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENdeletepattern(index: int) -> None:
-    """Deletes a time pattern from the network."""
-    ierr = _lib.ENdeletepattern(index)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetpattern(index: int, factors: List[float]) -> None:
-    """Sets all multipliers for a specific pattern."""
-    num_factors = len(factors)
-    cfactors = (ctypes.c_float * num_factors)(*factors)
-    ierr = _lib.ENsetpattern(index, cfactors, num_factors)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetpatternvalue(index: int, period: int, value: float) -> None:
-    """Sets the multiplier for a specific pattern period."""
-    ierr = _lib.ENsetpatternvalue(index, period, ctypes.c_float(value))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENaddcurve(curve_id: str) -> int:
-    """Adds a new data curve to the network."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddcurve(ctypes.c_char_p(curve_id.encode()), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENdeletecurve(index: int) -> None:
-    """Deletes a data curve from the network."""
-    ierr = _lib.ENdeletecurve(index)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetcurveindex(curve_id: str) -> int:
-    """Gets the index of a data curve from its ID."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENgetcurveindex(ctypes.c_char_p(curve_id.encode()), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENgetcurveid(index: int) -> str:
-    """Gets the ID for a data curve from its index."""
-    id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
-    ierr = _lib.ENgetcurveid(index, ctypes.byref(id_buffer))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return id_buffer.value.decode()
-
-
-def ENgetcurvelen(index: int) -> int:
-    """Gets the number of points in a data curve."""
-    len_ptr = ctypes.c_int()
-    ierr = _lib.ENgetcurvelen(index, ctypes.byref(len_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return len_ptr.value
-
-
-def ENgetcurvetype(index: int) -> int:
-    """Gets the type of a data curve."""
-    type_ptr = ctypes.c_int()
-    ierr = _lib.ENgetcurvetype(index, ctypes.byref(type_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return type_ptr.value
-
-
-def ENsetcurvetype(index: int, type_code: int) -> None:
-    """Sets the type of a data curve."""
-    ierr = _lib.ENsetcurvetype(index, type_code)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetcurvevalue(index: int, point_index: int) -> Tuple[float, float]:
-    """Gets the X and Y values for a point in a data curve."""
-    x = ctypes.c_float()
-    y = ctypes.c_float()
-    ierr = _lib.ENgetcurvevalue(index, point_index, ctypes.byref(x), ctypes.byref(y))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return float(x.value), float(y.value)
-
-
-def ENsetcurvevalue(index: int, point_index: int, x: float, y: float) -> None:
-    """Sets the X and Y values for a point in a data curve."""
-    ierr = _lib.ENsetcurvevalue(index, point_index, ctypes.c_float(x), ctypes.c_float(y))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetcount(count_code: int) -> int:
-    """Gets the number of components of a certain type."""
-    count_ptr = ctypes.c_int()
-    ierr = _lib.ENgetcount(count_code, ctypes.byref(count_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return count_ptr.value
-
-
-def ENgetflowunits() -> int:
-    """Gets the flow units code for the project."""
-    units_ptr = ctypes.c_int()
-    ierr = _lib.ENgetflowunits(ctypes.byref(units_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return units_ptr.value
-
-
-def ENgettimeparam(param_code: int) -> int:
-    """Gets the value of a specific time parameter."""
-    time_ptr = ctypes.c_int()
-    ierr = _lib.ENgettimeparam(param_code, ctypes.byref(time_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return time_ptr.value
-
-
-def ENsettimeparam(param_code: int, time_value: int) -> None:
-    """Sets the value of a specific time parameter."""
-    ierr = _lib.ENsettimeparam(param_code, time_value)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetqualtype() -> Tuple[int, int]:
-    """Gets the type of water quality analysis and trace node."""
-    q_ptr = ctypes.c_int()
-    t_ptr = ctypes.c_int()
-    ierr = _lib.ENgetqualtype(ctypes.byref(q_ptr), ctypes.byref(t_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return q_ptr.value, t_ptr.value
-
-
-def ENsetqualtype(qual_code: int, chem_name: str, chem_units: str, trace_node: str) -> None:
-    """Sets the water quality analysis parameters."""
-    ierr = _lib.ENsetqualtype(qual_code,
-                              ctypes.c_char_p(chem_name.encode()),
-                              ctypes.c_char_p(chem_units.encode()),
-                              ctypes.c_char_p(trace_node.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetoption(option_code: int) -> float:
-    """Gets the value of a simulation option."""
-    value_ptr = ctypes.c_float()
-    ierr = _lib.ENgetoption(option_code, ctypes.byref(value_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-def ENsetoption(option_code: int, value: float) -> None:
-    """Sets the value of a simulation option."""
-    ierr = _lib.ENsetoption(option_code, ctypes.c_float(value))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetversion() -> int:
-    """Gets the version number of the EPANET toolkit."""
-    version_ptr = ctypes.c_int()
-    ierr = _lib.ENgetversion(ctypes.byref(version_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return version_ptr.value
-
-
-def ENsolveH() -> None:
-    """Solves the hydraulics for the current project."""
-    ierr = _lib.ENsolveH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENopenH() -> None:
-    """Opens the hydraulic solver."""
-    ierr = _lib.ENopenH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENinitH(init_flag: int = 0) -> None:
-    """Initializes the hydraulic solver."""
-    ierr = _lib.ENinitH(init_flag)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENrunH() -> int:
-    """Executes a single step of the hydraulic simulation. Returns simulation time."""
-    time_ptr = ctypes.c_long()
-    ierr = _lib.ENrunH(ctypes.byref(time_ptr))
-    if ierr >= 100:
-        raise ENtoolkitError(ierr)
-    return time_ptr.value
-
-
-def ENnextH() -> int:
-    """Advances one time step in the simulation. Returns time remaining."""
-    deltat_ptr = ctypes.c_long()
-    ierr = _lib.ENnextH(ctypes.byref(deltat_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return deltat_ptr.value
-
-
-def ENcloseH() -> None:
-    """Closes the hydraulic solver."""
-    ierr = _lib.ENcloseH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsolveQ() -> None:
-    """Solves water quality for current project."""
-    ierr = _lib.ENsolveQ()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENopenQ() -> None:
-    """Opens the quality solver."""
-    ierr = _lib.ENopenQ()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENinitQ(init_flag: int = 0) -> None:
-    """Initializes the quality solver."""
-    ierr = _lib.ENinitQ(init_flag)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENrunQ() -> int:
-    """Runs one quality simulation step. Returns time."""
-    time_ptr = ctypes.c_long()
-    ierr = _lib.ENrunQ(ctypes.byref(time_ptr))
-    if ierr >= 100:
-        raise ENtoolkitError(ierr)
-    return time_ptr.value
-
-
-def ENnextQ() -> int:
-    """Advances one quality simulation step. Returns time remaining."""
-    deltat_ptr = ctypes.c_long()
-    ierr = _lib.ENnextQ(ctypes.byref(deltat_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return deltat_ptr.value
-
-
-def ENcloseQ() -> None:
-    """Closes quality solver."""
-    ierr = _lib.ENcloseQ()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsaveH() -> None:
-    """Saves hydraulic results."""
-    ierr = _lib.ENsaveH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsaveinpfile(file_name: str) -> None:
-    """Saves current network state as an .inp file."""
-    ierr = _lib.ENsaveinpfile(ctypes.c_char_p(file_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsavehydfile(file_name: str) -> None:
-    """Saves binary hydraulics results."""
-    ierr = _lib.ENsavehydfile(ctypes.c_char_p(file_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENusehydfile(file_name: str) -> None:
-    """Uses a pre-calculated hydraulics binary file."""
-    ierr = _lib.ENusehydfile(ctypes.c_char_p(file_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENreport() -> None:
-    """Generates the report file."""
-    ierr = _lib.ENreport()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENresetreport() -> None:
-    """Resets all report commands."""
-    ierr = _lib.ENresetreport()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetreport(command: str) -> None:
-    """Applies a specific report configuration command."""
-    ierr = _lib.ENsetreport(ctypes.c_char_p(command.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-# --- Convenience functions for missing array exports ---
-
-def ENgetnodevalues(property_code: int) -> List[float]:
-    """Gets values for a property for all nodes via loop (legacy array export missing in 2.2)."""
-    count = ENgetcount(EN_NODECOUNT)
-    return [ENgetnodevalue(i, property_code) for i in range(1, count + 1)]
-
-
-def ENgetlinkvalues(property_code: int) -> List[float]:
-    """Gets values for a property for all links via loop (legacy array export missing in 2.2)."""
-    count = ENgetcount(EN_LINKCOUNT)
-    return [ENgetlinkvalue(i, property_code) for i in range(1, count + 1)]
-
-
-def ENsolveH() -> None:
-    """Solves the hydraulics for the current project."""
-    ierr = _lib.ENsolveH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENopenH() -> None:
-    """Opens the hydraulic solver."""
-    ierr = _lib.ENopenH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENinitH(init_flag: int = 0) -> None:
-    """Initializes the hydraulic solver."""
-    ierr = _lib.ENinitH(init_flag)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENrunH() -> int:
-    """Executes a single step of the hydraulic simulation. Returns simulation time."""
-    time_ptr = ctypes.c_long()
-    ierr = _lib.ENrunH(ctypes.byref(time_ptr))
-    if ierr >= 100:
-        raise ENtoolkitError(ierr)
-    return time_ptr.value
-
-
-def ENnextH() -> int:
-    """Advances one time step in the simulation. Returns time remaining."""
-    deltat_ptr = ctypes.c_long()
-    ierr = _lib.ENnextH(ctypes.byref(deltat_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return deltat_ptr.value
-
-
-def ENcloseH() -> None:
-    """Closes the hydraulic solver."""
-    ierr = _lib.ENcloseH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsolveQ() -> None:
-    """Solves water quality for current project."""
-    ierr = _lib.ENsolveQ()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENopenQ() -> None:
-    """Opens the quality solver."""
-    ierr = _lib.ENopenQ()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENinitQ(init_flag: int = 0) -> None:
-    """Initializes the quality solver."""
-    ierr = _lib.ENinitQ(init_flag)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENrunQ() -> int:
-    """Runs one quality simulation step. Returns time."""
-    time_ptr = ctypes.c_long()
-    ierr = _lib.ENrunQ(ctypes.byref(time_ptr))
-    if ierr >= 100:
-        raise ENtoolkitError(ierr)
-    return time_ptr.value
-
-
-def ENnextQ() -> int:
-    """Advances one quality simulation step. Returns time remaining."""
-    deltat_ptr = ctypes.c_long()
-    ierr = _lib.ENnextQ(ctypes.byref(deltat_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return deltat_ptr.value
-
-
-def ENcloseQ() -> None:
-    """Closes quality solver."""
-    ierr = _lib.ENcloseQ()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsaveH() -> None:
-    """Saves hydraulic results."""
-    ierr = _lib.ENsaveH()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsaveinpfile(file_name: str) -> None:
-    """Saves current network state as an .inp file."""
-    ierr = _lib.ENsaveinpfile(ctypes.c_char_p(file_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsavehydfile(file_name: str) -> None:
-    """Saves binary hydraulics results."""
-    ierr = _lib.ENsavehydfile(ctypes.c_char_p(file_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENusehydfile(file_name: str) -> None:
-    """Uses a pre-calculated hydraulics binary file."""
-    ierr = _lib.ENusehydfile(ctypes.c_char_p(file_name.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENreport() -> None:
-    """Generates the report file."""
-    ierr = _lib.ENreport()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENresetreport() -> None:
-    """Resets all report commands."""
-    ierr = _lib.ENresetreport()
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetreport(command: str) -> None:
-    """Applies a specific report configuration command."""
-    ierr = _lib.ENsetreport(ctypes.c_char_p(command.encode()))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENaddcontrol(type: int, link_index: int, setting: float, node_index: int, level: float) -> int:
-    """Adds a new simple control."""
-    index_ptr = ctypes.c_int()
-    ierr = _lib.ENaddcontrol(type, link_index, ctypes.c_float(setting),
-                             node_index, ctypes.c_float(level), ctypes.byref(index_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return index_ptr.value
-
-
-def ENdeletecontrol(index: int) -> None:
-    """Deletes a simple control."""
-    ierr = _lib.ENdeletecontrol(index)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetcontrol(index: int) -> Tuple[int, int, float, int, float]:
-    """Gets parameters for a simple control."""
-    type_ptr = ctypes.c_int()
-    link_ptr = ctypes.c_int()
-    setting_ptr = ctypes.c_float()
-    node_ptr = ctypes.c_int()
-    level_ptr = ctypes.c_float()
-    ierr = _lib.ENgetcontrol(index, ctypes.byref(type_ptr), ctypes.byref(link_ptr),
-                             ctypes.byref(setting_ptr), ctypes.byref(node_ptr),
-                             ctypes.byref(level_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return type_ptr.value, link_ptr.value, float(setting_ptr.value), node_ptr.value, float(level_ptr.value)
-
-
-def ENsetcontrol(index: int, type: int, link_index: int, setting: float, node_index: int, level: float) -> None:
-    """Sets parameters for a simple control."""
-    ierr = _lib.ENsetcontrol(index, type, link_index, ctypes.c_float(setting),
-                             node_index, ctypes.c_float(level))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENgetstatistic(type_code: int) -> float:
-    """Gets value of a simulation statistic."""
-    value_ptr = ctypes.c_float()
-    ierr = _lib.ENgetstatistic(type_code, ctypes.byref(value_ptr))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return float(value_ptr.value)
-
-
-def ENgetdemandmodel() -> Tuple[int, float, float, float]:
-    """Gets the demand model parameters."""
-    model = ctypes.c_int()
-    pmin = ctypes.c_float()
-    preq = ctypes.c_float()
-    pexp = ctypes.c_float()
-    ierr = _lib.ENgetdemandmodel(ctypes.byref(model), ctypes.byref(pmin),
-                                 ctypes.byref(preq), ctypes.byref(pexp))
-    if ierr:
-        raise ENtoolkitError(ierr)
-    return model.value, float(pmin.value), float(preq.value), float(pexp.value)
-
-
-def ENsetdemandmodel(model: int, pmin: float, preq: float, pexp: float) -> None:
-    """Sets the demand model parameters."""
-    ierr = _lib.ENsetdemandmodel(model, ctypes.c_float(pmin),
-                                 ctypes.c_float(preq), ctypes.c_float(pexp))
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-def ENsetstatusreport(status_level: int) -> None:
-    """Sets the level of status reporting (0, 1, or 2)."""
-    ierr = _lib.ENsetstatusreport(status_level)
-    if ierr:
-        raise ENtoolkitError(ierr)
-
-
-
+    
+    def __init__(self):
+        """Initializes a new EPANET project handle."""
+        self.ph = ctypes.c_void_p()
+        logger.info("Creating new EPANET project handle")
+        ierr = _lib.EN_createproject(ctypes.byref(self.ph))
+        if ierr:
+            raise ENtoolkitError(ierr)
+            
+    def __del__(self):
+        # We don't call EN_deleteproject in __del__ because it can cause 
+        # issues during interpreter shutdown if _lib is already cleaned up.
+        # User should call delete() explicitly or use a context manager.
+        pass
+
+    def delete(self):
+        """Deletes the project and frees all associated memory."""
+        if hasattr(self, 'ph') and self.ph:
+            logger.info("Deleting EPANET project handle")
+            _lib.EN_deleteproject(self.ph)
+            self.ph = None
+
+    def _check(self, ierr: int):
+        if ierr:
+            msg = ctypes.create_string_buffer(ERR_MAX_CHAR)
+            _lib.EN_geterror(ierr, msg, ERR_MAX_CHAR)
+            err_msg = msg.value.decode()
+            raise ENtoolkitError(ierr, err_msg)
+
+    # --- Project Management ---
+
+    def init(self, rpt_file: str = "", bin_file: str = "", units: int = EN_CFS, hl: int = EN_HW):
+        """Initializes a new project with specific units and headloss formula.
+
+        Args:
+            rpt_file (str): Path to the report file (default is no file).
+            bin_file (str): Path to the binary output file (default is no file).
+            units (int): Flow units code (e.g., EN_LPS, EN_CFS).
+            hl (int): Headloss formula code (e.g., EN_HW, EN_DW).
+        """
+        logger.info("Initializing project: rpt='%s', bin='%s', units=%d, hl=%d", 
+                    rpt_file, bin_file, units, hl)
+        self._check(_lib.EN_init(self.ph, 
+                                 ctypes.c_char_p(rpt_file.encode()),
+                                 ctypes.c_char_p(bin_file.encode()),
+                                 units, hl))
+
+    def open(self, inp_file: str, rpt_file: str = '', bin_file: str = ''):
+        """Opens an EPANET project from an input file.
+
+        Args:
+            inp_file (str): Path to the .inp file.
+            rpt_file (str): Path to the report file to be created.
+            bin_file (str): Path to the binary output file to be created.
+        """
+        logger.info("Opening project: inp='%s', rpt='%s', bin='%s'", inp_file, rpt_file, bin_file)
+        self._check(_lib.EN_open(self.ph, 
+                                 ctypes.c_char_p(inp_file.encode()),
+                                 ctypes.c_char_p(rpt_file.encode()),
+                                 ctypes.c_char_p(bin_file.encode())))
+
+    def close(self):
+        """Closes the currently open project and releases file handles."""
+        logger.info("Closing project")
+        self._check(_lib.EN_close(self.ph))
+
+    def solveH(self):
+        """Runs a complete hydraulic simulation and saves results to files."""
+        logger.info("Solving hydraulics")
+        self._check(_lib.EN_solveH(self.ph))
+
+    # --- Node Properties (Double Precision) ---
+
+    def getnodeindex(self, node_id: str) -> int:
+        """Retrieves the internal index of a node by its ID.
+
+        Args:
+            node_id (str): The node ID string.
+
+        Returns:
+            int: The node index (1-based).
+        """
+        index = ctypes.c_int()
+        self._check(_lib.EN_getnodeindex(self.ph, ctypes.c_char_p(node_id.encode()), ctypes.byref(index)))
+        return index.value
+
+    def getnodeid(self, index: int) -> str:
+        """Retrieves the ID string of a node by its index.
+
+        Args:
+            index (int): The node index (1-based).
+
+        Returns:
+            str: The node ID.
+        """
+        id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
+        self._check(_lib.EN_getnodeid(self.ph, index, id_buffer))
+        return id_buffer.value.decode()
+
+    def getnodevalue(self, index: int, prop: int) -> float:
+        """Retrieves a double-precision property value for a node.
+
+        Args:
+            index (int): The node index (1-based).
+            prop (int): Property code (e.g., EN_DEMAND, EN_PRESSURE).
+
+        Returns:
+            float: The property value.
+        """
+        val = ctypes.c_double()
+        self._check(_lib.EN_getnodevalue(self.ph, index, prop, ctypes.byref(val)))
+        return float(val.value)
+
+    def setnodevalue(self, index: int, prop: int, value: float):
+        """Sets a property value for a node (Double Precision).
+
+        Args:
+            index (int): The node index (1-based).
+            prop (int): Property code (e.g., EN_ELEVATION, EN_BASEDEMAND).
+            value (float): The value to set.
+        """
+        self._check(_lib.EN_setnodevalue(self.ph, index, prop, ctypes.c_double(value)))
+
+    def getnodevalues(self, prop: int) -> List[float]:
+        """High-efficiency retrieval of a property for **all** nodes.
+
+        Args:
+            prop (int): Property code.
+
+        Returns:
+            List[float]: A list containing the values for all nodes.
+        """
+        count = self.getcount(EN_NODECOUNT)
+        return [self.getnodevalue(i, prop) for i in range(1, count + 1)]
+
+    def addnode(self, node_id: str, node_type: int) -> int:
+        """Adds a new node to the network.
+
+        Args:
+            node_id (str): The ID for the new node.
+            node_type (int): Node type (EN_JUNCTION, EN_RESERVOIR, EN_TANK).
+
+        Returns:
+            int: The index of the newly added node.
+        """
+        index = ctypes.c_int()
+        self._check(_lib.EN_addnode(self.ph, ctypes.c_char_p(node_id.encode()), node_type, ctypes.byref(index)))
+        return index.value
+
+    def addlink(self, link_id: str, link_type: int, from_node: str, to_node: str) -> int:
+        """Adds a new link to the network.
+
+        Args:
+            link_id (str): ID of the new link.
+            link_type (int): Link type (EN_PIPE, EN_PUMP, etc.).
+            from_node (str): ID of the start node.
+            to_node (str): ID of the end node.
+
+        Returns:
+            int: The index of the newly added link.
+        """
+        index = ctypes.c_int()
+        self._check(_lib.EN_addlink(self.ph, ctypes.c_char_p(link_id.encode()), link_type,
+                                     ctypes.c_char_p(from_node.encode()),
+                                     ctypes.c_char_p(to_node.encode()),
+                                     ctypes.byref(index)))
+        # If index was not updated (remains 0 or -1), try to fetch it
+        if index.value <= 0:
+            self._check(_lib.EN_getlinkindex(self.ph, ctypes.c_char_p(link_id.encode()), ctypes.byref(index)))
+        return index.value
+
+    # --- Link Properties (Double Precision) ---
+
+    def getlinkindex(self, link_id: str) -> int:
+        """Retrieves the internal index of a link by its ID.
+
+        Args:
+            link_id (str): The link ID string.
+
+        Returns:
+            int: The link index (1-based).
+        """
+        index = ctypes.c_int()
+        self._check(_lib.EN_getlinkindex(self.ph, ctypes.c_char_p(link_id.encode()), ctypes.byref(index)))
+        return index.value
+
+    def getlinkid(self, index: int) -> str:
+        """Retrieves the ID string of a link by its index.
+
+        Args:
+            index (int): The link index (1-based).
+
+        Returns:
+            str: The link ID.
+        """
+        id_buffer = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
+        self._check(_lib.EN_getlinkid(self.ph, index, id_buffer))
+        return id_buffer.value.decode()
+
+    def getlinkvalue(self, index: int, prop: int) -> float:
+        """Retrieves a double-precision property value for a link.
+
+        Args:
+            index (int): The link index (1-based).
+            prop (int): Property code (e.g., EN_FLOW, EN_VELOCITY).
+
+        Returns:
+            float: The property value.
+        """
+        val = ctypes.c_double()
+        self._check(_lib.EN_getlinkvalue(self.ph, index, prop, ctypes.byref(val)))
+        return float(val.value)
+
+    def setlinkvalue(self, index: int, prop: int, value: float):
+        """Sets a property value for a link (Double Precision).
+
+        Args:
+            index (int): The link index (1-based).
+            prop (int): Property code (e.g., EN_DIAMETER, EN_ROUGHNESS).
+            value (float): The value to set.
+        """
+        self._check(_lib.EN_setlinkvalue(self.ph, index, prop, ctypes.c_double(value)))
+
+    def getlinkvalues(self, prop: int) -> List[float]:
+        """High-efficiency retrieval of a property for **all** links.
+
+        Args:
+            prop (int): Property code.
+
+        Returns:
+            List[float]: A list containing the values for all links.
+        """
+        count = self.getcount(EN_LINKCOUNT)
+        return [self.getlinkvalue(i, prop) for i in range(1, count + 1)]
+
+    def getcount(self, obj_type: int) -> int:
+        """Retrieves the count of objects of a specific type.
+
+        Args:
+            obj_type (int): Object type code (e.g., EN_NODECOUNT, EN_LINKCOUNT).
+
+        Returns:
+            int: The number of objects.
+        """
+        count = ctypes.c_int()
+        self._check(_lib.EN_getcount(self.ph, obj_type, ctypes.byref(count)))
+        return count.value
+
+    def setdemandmodel(self, model: int, pmin: float, preq: float, pexp: float):
+        """Sets the demand model and its parameters (PDA vs DDA).
+
+        Args:
+            model (int): EN_DDA (0) or EN_PDA (1).
+            pmin (float): Minimum pressure.
+            preq (float): Required pressure.
+            pexp (float): Pressure exponent.
+        """
+        self._check(_lib.EN_setdemandmodel(self.ph, model, 
+                                           ctypes.c_double(pmin), 
+                                           ctypes.c_double(preq), 
+                                           ctypes.c_double(pexp)))
+
+    # --- Demand Management (New in 2.2) ---
+
+    def getnumdemands(self, node_index: int) -> int:
+        """Retrieves the number of demand categories for a junction node.
+
+        Args:
+            node_index (int): The node index (1-based).
+
+        Returns:
+            int: The number of demand categories.
+        """
+        num = ctypes.c_int()
+        self._check(_lib.EN_getnumdemands(self.ph, node_index, ctypes.byref(num)))
+        return num.value
+
+    def getbasedemand(self, node_index: int, demand_index: int) -> float:
+        """Gets the double-precision base demand for a specific demand category.
+
+        Args:
+            node_index (int): The node index (1-based).
+            demand_index (int): The demand category index (1-based).
+
+        Returns:
+            float: The base demand value.
+        """
+        val = ctypes.c_double()
+        self._check(_lib.EN_getbasedemand(self.ph, node_index, demand_index, ctypes.byref(val)))
+        return float(val.value)
+
+    def setbasedemand(self, node_index: int, demand_index: int, value: float):
+        """Sets the base demand for a specific demand category (Double Precision).
+
+        Args:
+            node_index (int): The node index (1-based).
+            demand_index (int): The demand category index (1-based).
+            value (float): The new base demand.
+        """
+        self._check(_lib.EN_setbasedemand(self.ph, node_index, demand_index, ctypes.c_double(value)))
+
+    def adddemand(self, node_index: int, base_demand: float, pattern_name: str = '', demand_name: str = ''):
+        """Appends a new demand category to a junction node (EPANET 2.2+).
+
+        Args:
+            node_index (int): The node index (1-based).
+            base_demand (float): Base demand value.
+            pattern_name (str, optional): Name of the time pattern.
+            demand_name (str, optional): Descriptive name of the demand category.
+        """
+        self._check(_lib.EN_adddemand(self.ph, node_index, ctypes.c_double(base_demand),
+                                      ctypes.c_char_p(pattern_name.encode()),
+                                      ctypes.c_char_p(demand_name.encode())))
+
+    def deletedemand(self, node_index: int, demand_index: int):
+        """Removes a demand category from a junction node.
+
+        Args:
+            node_index (int): The node index (1-based).
+            demand_index (int): The demand category index to delete.
+        """
+        self._check(_lib.EN_deletedemand(self.ph, node_index, demand_index))
+
+    # --- Quality and Patterns ---
+
+    def setqualtype(self, qual_type: int, chem_name: str = "", chem_units: str = "", trace_node: str = ""):
+        """Sets the type of water quality analysis.
+
+        Args:
+            qual_type (int): EN_NONE, EN_CHEM, EN_AGE, or EN_TRACE.
+            chem_name (str): Name of chemical.
+            chem_units (str): Units of chemical.
+            trace_node (str): ID of node to trace.
+        """
+        self._check(_lib.EN_setqualtype(self.ph, qual_type,
+                                        ctypes.c_char_p(chem_name.encode()),
+                                        ctypes.c_char_p(chem_units.encode()),
+                                        ctypes.c_char_p(trace_node.encode())))
+
+    def solveQ(self):
+        """Runs a complete water quality simulation."""
+        self._check(_lib.EN_solveQ(self.ph))
+
+    def addpattern(self, pattern_id: str) -> int:
+        """Adds a new time pattern.
+
+        Args:
+            pattern_id (str): ID of the new pattern.
+
+        Returns:
+            int: Index of the new pattern.
+        """
+        index = ctypes.c_int()
+        self._check(_lib.EN_addpattern(self.ph, ctypes.c_char_p(pattern_id.encode()), ctypes.byref(index)))
+        # If index was not updated (remains 0 or -1), try to fetch it
+        if index.value <= 0:
+            self._check(_lib.EN_getpatternindex(self.ph, ctypes.c_char_p(pattern_id.encode()), ctypes.byref(index)))
+        return index.value
+
+    def setpattern(self, index: int, factors: List[float]):
+        """Sets all multipliers for a pattern.
+
+        Args:
+            index (int): Pattern index.
+            factors (List[float]): Multipliers.
+        """
+        count = len(factors)
+        cfactors = (ctypes.c_double * count)(*factors)
+        self._check(_lib.EN_setpattern(self.ph, index, cfactors, count))
+
+    def getpatternvalue(self, index: int, period: int) -> float:
+        """Retrieves the multiplier for a pattern period.
+
+        Args:
+            index (int): Pattern index.
+            period (int): Period index (1-based).
+
+        Returns:
+            float: Multiplier value.
+        """
+        val = ctypes.c_double()
+        self._check(_lib.EN_getpatternvalue(self.ph, index, period, ctypes.byref(val)))
+        return float(val.value)
+
+    # --- Controls and Statistics ---
+
+    def addcontrol(self, type: int, link: int, setting: float, node: int, level: float) -> int:
+        """Adds a new simple control.
+
+        Args:
+            type (int): Control type (EN_LOWLEVEL, EN_HILEVEL, EN_TIMER, EN_TIMEOFDAY).
+            link (int): Index of the controlled link.
+            setting (float): Control setting (0/1 for open/closed, or valve setting).
+            node (int): Index of the controlling node (0 for timer/timeofday).
+            level (float): Control trigger level/time.
+
+        Returns:
+            int: The index of the new control.
+        """
+        idx = ctypes.c_int()
+        self._check(_lib.EN_addcontrol(self.ph, type, link, ctypes.c_float(setting), node, ctypes.c_float(level), ctypes.byref(idx)))
+        return idx.value
+
+    def getcontrol(self, index: int) -> Tuple[int, int, float, int, float]:
+        """Retrieves parameters of a simple control.
+
+        Args:
+            index (int): Control index.
+
+        Returns:
+            Tuple: (type, link, setting, node, level).
+        """
+        ctype = ctypes.c_int()
+        clink = ctypes.c_int()
+        cset = ctypes.c_float()
+        cnode = ctypes.c_int()
+        clev = ctypes.c_float()
+        self._check(_lib.EN_getcontrol(self.ph, index, ctypes.byref(ctype), ctypes.byref(clink), ctypes.byref(cset), ctypes.byref(cnode), ctypes.byref(clev)))
+        return ctype.value, clink.value, float(cset.value), cnode.value, float(clev.value)
+
+    def setcontrol(self, index: int, type: int, link: int, setting: float, node: int, level: float):
+        """Modifies an existing simple control."""
+        self._check(_lib.EN_setcontrol(self.ph, index, type, link, ctypes.c_float(setting), node, ctypes.c_float(level)))
+
+    def deletecontrol(self, index: int):
+        """Deletes a simple control."""
+        self._check(_lib.EN_deletecontrol(self.ph, index))
+
+    def getstatistic(self, type_code: int) -> float:
+        """Retrieves a simulation statistic (iterations, relative error, etc.)."""
+        val = ctypes.c_double()
+        self._check(_lib.EN_getstatistic(self.ph, type_code, ctypes.byref(val)))
+        return float(val.value)
+
+    def getoption(self, type_code: int) -> float:
+        """Retrieves a project option (accuracy, trials, etc.)."""
+        val = ctypes.c_double()
+        self._check(_lib.EN_getoption(self.ph, type_code, ctypes.byref(val)))
+        return float(val.value)
+
+    def setoption(self, type_code: int, value: float):
+        """Sets a project option."""
+        self._check(_lib.EN_setoption(self.ph, type_code, ctypes.c_double(value)))
+
+    def gettitle(self) -> Tuple[str, str, str]:
+        """Retrieves the three title lines of the project."""
+        l1 = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
+        l2 = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
+        l3 = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
+        self._check(_lib.EN_gettitle(self.ph, l1, l2, l3))
+        return l1.value.decode(), l2.value.decode(), l3.value.decode()
+
+    def settitle(self, line1: str = "", line2: str = "", line3: str = ""):
+        """Sets the three title lines of the project."""
+        self._check(_lib.EN_settitle(self.ph, line1.encode(), line2.encode(), line3.encode()))
