@@ -151,6 +151,11 @@ _lib.EN_deletecontrol.restype = ctypes.c_int
 _lib.EN_getpatternindex.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
 _lib.EN_getpatternindex.restype = ctypes.c_int
 
+# Define EN_getversion
+if hasattr(_lib, "EN_getversion"):
+    _lib.EN_getversion.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+    _lib.EN_getversion.restype = ctypes.c_int
+
 class EPANETProject:
     """A thread-safe interface to an EPANET project handle.
     
@@ -231,6 +236,23 @@ class EPANETProject:
         """Runs a complete hydraulic simulation and saves results to files."""
         logger.info("Solving hydraulics")
         self._check(_lib.EN_solveH(self.ph))
+
+    def getversion(self) -> int:
+        """Retrieves the version number of the EPANET toolkit.
+        
+        Returns:
+            int: Version number (e.g., 20200 for 2.2).
+        """
+        if hasattr(_lib, "EN_getversion"):
+            version = ctypes.c_int()
+            self._check(_lib.EN_getversion(self.ph, ctypes.byref(version)))
+            return version.value
+        else:
+            # Fallback for older engines that don't export EN_getversion in handle-based API
+            # but usually they do if they have EN_createproject.
+            # We can also use legacy.ENgetversion() as a last resort since version is global.
+            from . import legacy
+            return legacy.ENgetversion()
 
     # --- Node Properties (Double Precision) ---
 

@@ -247,6 +247,9 @@ _funcs_argtypes = {
     "ENdeletelink": [ctypes.c_int, ctypes.c_int],
     "ENgettitle": [_Pchar, _Pchar, _Pchar],
     "ENsettitle": [_Pchar, _Pchar, _Pchar],
+    # EPANET 2.3 Vector API
+    "ENgetnodevalues": [ctypes.c_int, _Pdouble],
+    "ENgetlinkvalues": [ctypes.c_int, _Pdouble],
 }
 
 for name, args in _funcs_argtypes.items():
@@ -1127,15 +1130,37 @@ def ENwriteline(line: str) -> None:
 # --- Convenience functions for missing array exports ---
 
 def ENgetnodevalues(property_code: int) -> List[float]:
-    """Gets values for a property for all nodes via loop (legacy array export missing in 2.2)."""
+    """Gets values for a property for all nodes. 
+    
+    Uses high-performance native vector API if available (EPANET 2.3+).
+    """
     count = ENgetcount(EN_NODECOUNT)
-    return [ENgetnodevalue(i, property_code) for i in range(1, count + 1)]
+    if hasattr(_lib, "ENgetnodevalues"):
+        out_values = (ctypes.c_double * count)()
+        ierr = _lib.ENgetnodevalues(property_code, out_values)
+        if ierr != 0:
+            raise ENtoolkitError(ierr)
+        return [float(out_values[i]) for i in range(count)]
+    else:
+        # Fallback for 2.2 and older
+        return [ENgetnodevalue(i, property_code) for i in range(1, count + 1)]
 
 
 def ENgetlinkvalues(property_code: int) -> List[float]:
-    """Gets values for a property for all links via loop (legacy array export missing in 2.2)."""
+    """Gets values for a property for all links.
+    
+    Uses high-performance native vector API if available (EPANET 2.3+).
+    """
     count = ENgetcount(EN_LINKCOUNT)
-    return [ENgetlinkvalue(i, property_code) for i in range(1, count + 1)]
+    if hasattr(_lib, "ENgetlinkvalues"):
+        out_values = (ctypes.c_double * count)()
+        ierr = _lib.ENgetlinkvalues(property_code, out_values)
+        if ierr != 0:
+            raise ENtoolkitError(ierr)
+        return [float(out_values[i]) for i in range(count)]
+    else:
+        # Fallback for 2.2 and older
+        return [ENgetlinkvalue(i, property_code) for i in range(1, count + 1)]
 
 
 
