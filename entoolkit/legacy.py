@@ -47,7 +47,7 @@ elif _OS_NAME == "darwin":
     _lib_path = _BASE_PATH / f"darwin-{_arch}" / "libepanet.dylib"
     _lib = ctypes.CDLL(str(_lib_path))
 else: # Linux
-    _lib_path = _BASE_PATH / f"linux-{_arch}" / "libepanet.so"
+    _lib_path = _BASE_PATH / f"linux-{_arch}" / "libepanet2.so"
     _lib = ctypes.CDLL(str(_lib_path))
 
 logger = logging.getLogger("entoolkit")
