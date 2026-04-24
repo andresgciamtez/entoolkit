@@ -9,7 +9,7 @@ import logging
 from typing import Tuple, List, Optional, Union
 
 from .constants import *
-from .legacy import _lib, ENtoolkitError, ERR_MAX_CHAR, MAX_LABEL_LEN
+from .legacy import _lib, ENtoolkitError, ERR_MAX_CHAR, MAX_LABEL_LEN, MAX_TITLE_LEN
 
 logger = logging.getLogger("entoolkit")
 
@@ -124,15 +124,15 @@ _lib.EN_settitle.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, 
 _lib.EN_settitle.restype = ctypes.c_int
 
 # Define EN_addcontrol
-_lib.EN_addcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_float, ctypes.c_int, ctypes.c_float, ctypes.POINTER(ctypes.c_int)]
+_lib.EN_addcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_int, ctypes.c_double, ctypes.POINTER(ctypes.c_int)]
 _lib.EN_addcontrol.restype = ctypes.c_int
 
 # Define EN_getcontrol
-_lib.EN_getcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_float)]
+_lib.EN_getcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_double)]
 _lib.EN_getcontrol.restype = ctypes.c_int
 
 # Define EN_setcontrol
-_lib.EN_setcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_float, ctypes.c_int, ctypes.c_float]
+_lib.EN_setcontrol.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_int, ctypes.c_double]
 _lib.EN_setcontrol.restype = ctypes.c_int
 
 # Define EN_deletecontrol
@@ -553,7 +553,7 @@ class EPANETProject:
             int: The index of the new control.
         """
         idx = ctypes.c_int()
-        self._check(_lib.EN_addcontrol(self.ph, type, link, ctypes.c_float(setting), node, ctypes.c_float(level), ctypes.byref(idx)))
+        self._check(_lib.EN_addcontrol(self.ph, type, link, ctypes.c_double(setting), node, ctypes.c_double(level), ctypes.byref(idx)))
         return idx.value
 
     def getcontrol(self, index: int) -> Tuple[int, int, float, int, float]:
@@ -567,15 +567,15 @@ class EPANETProject:
         """
         ctype = ctypes.c_int()
         clink = ctypes.c_int()
-        cset = ctypes.c_float()
+        cset = ctypes.c_double()
         cnode = ctypes.c_int()
-        clev = ctypes.c_float()
+        clev = ctypes.c_double()
         self._check(_lib.EN_getcontrol(self.ph, index, ctypes.byref(ctype), ctypes.byref(clink), ctypes.byref(cset), ctypes.byref(cnode), ctypes.byref(clev)))
         return ctype.value, clink.value, float(cset.value), cnode.value, float(clev.value)
 
     def setcontrol(self, index: int, type: int, link: int, setting: float, node: int, level: float):
         """Modifies an existing simple control."""
-        self._check(_lib.EN_setcontrol(self.ph, index, type, link, ctypes.c_float(setting), node, ctypes.c_float(level)))
+        self._check(_lib.EN_setcontrol(self.ph, index, type, link, ctypes.c_double(setting), node, ctypes.c_double(level)))
 
     def deletecontrol(self, index: int):
         """Deletes a simple control."""
@@ -599,9 +599,9 @@ class EPANETProject:
 
     def gettitle(self) -> Tuple[str, str, str]:
         """Retrieves the three title lines of the project."""
-        l1 = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
-        l2 = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
-        l3 = ctypes.create_string_buffer(MAX_LABEL_LEN + 1)
+        l1 = ctypes.create_string_buffer(MAX_TITLE_LEN + 1)
+        l2 = ctypes.create_string_buffer(MAX_TITLE_LEN + 1)
+        l3 = ctypes.create_string_buffer(MAX_TITLE_LEN + 1)
         self._check(_lib.EN_gettitle(self.ph, l1, l2, l3))
         return l1.value.decode(), l2.value.decode(), l3.value.decode()
 
