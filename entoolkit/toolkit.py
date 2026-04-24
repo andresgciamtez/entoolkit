@@ -59,6 +59,14 @@ _lib.EN_getlinkvalue.restype = ctypes.c_int
 _lib.EN_setlinkvalue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_double]
 _lib.EN_setlinkvalue.restype = ctypes.c_int
 
+if hasattr(_lib, "EN_getnodevalues"):
+    _lib.EN_getnodevalues.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+    _lib.EN_getnodevalues.restype = ctypes.c_int
+
+if hasattr(_lib, "EN_getlinkvalues"):
+    _lib.EN_getlinkvalues.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)]
+    _lib.EN_getlinkvalues.restype = ctypes.c_int
+
 _lib.EN_getcount.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int)]
 _lib.EN_getcount.restype = ctypes.c_int
 
@@ -286,7 +294,12 @@ class EPANETProject:
             List[float]: A list containing the values for all nodes.
         """
         count = self.getcount(EN_NODECOUNT)
-        return [self.getnodevalue(i, prop) for i in range(1, count + 1)]
+        if hasattr(_lib, "EN_getnodevalues"):
+            out_values = (ctypes.c_double * count)()
+            self._check(_lib.EN_getnodevalues(self.ph, prop, out_values))
+            return [float(out_values[i]) for i in range(count)]
+        else:
+            return [self.getnodevalue(i, prop) for i in range(1, count + 1)]
 
     def addnode(self, node_id: str, node_type: int) -> int:
         """Adds a new node to the network.
@@ -386,7 +399,12 @@ class EPANETProject:
             List[float]: A list containing the values for all links.
         """
         count = self.getcount(EN_LINKCOUNT)
-        return [self.getlinkvalue(i, prop) for i in range(1, count + 1)]
+        if hasattr(_lib, "EN_getlinkvalues"):
+            out_values = (ctypes.c_double * count)()
+            self._check(_lib.EN_getlinkvalues(self.ph, prop, out_values))
+            return [float(out_values[i]) for i in range(count)]
+        else:
+            return [self.getlinkvalue(i, prop) for i in range(1, count + 1)]
 
     def getcount(self, obj_type: int) -> int:
         """Retrieves the count of objects of a specific type.

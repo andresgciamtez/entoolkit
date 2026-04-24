@@ -8,7 +8,7 @@ NET1_PATH = os.path.join(os.path.dirname(__file__), "tests", "networks", "Net1.i
 class TestEntoolkit(unittest.TestCase):
     
     def test_01_version(self):
-        self.assertEqual(legacy.ENgetversion(), 20200)
+        self.assertGreaterEqual(legacy.ENgetversion(), 20200)
 
     def test_02_legacy_sim(self):
         legacy.ENopen(NET1_PATH, "test_legacy.rpt", "")
