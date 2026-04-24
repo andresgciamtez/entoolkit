@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+!entoolkit/epanet/**/*.so
 .Python
 env/
 build/
