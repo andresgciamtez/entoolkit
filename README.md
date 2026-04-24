@@ -1,6 +1,6 @@
 # entoolkit
 
-Python extension for the **EPANET 2.2** Programmer Toolkit.
+Python extension for the **EPANET 2.3** Programmer Toolkit.
 
 `entoolkit` provides a Pythonic wrapper around the EPANET hydraulic simulation engine. It includes two distinct APIs to suit different needs:
 1.  **Modern Handle-Based API (`entoolkit.toolkit`)**: A thread-safe, high-precision interface (64-bit double) that allows managing multiple projects simultaneously. **(Recommended)**
@@ -16,14 +16,14 @@ Currently, you can install the package by cloning the repository and installing 
 pip install -e .
 ```
 
-The package comes pre-bundled with 64-bit binaries for **Windows**, **Linux**, and **macOS** (Intel & Apple Silicon).
+The package comes pre-bundled with 64-bit binaries for **Windows** and **Linux** (v2.3.0). macOS binaries are currently legacy (v2.2.0) and will be updated soon.
 
 ---
 
 ## Quick Start
 
 ### 1. Modern API (Recommended)
-This API uses the new EPANET 2.2 handle system, supports thread-safe operations, and utilizes **double precision** (`double`) for higher numerical accuracy.
+This API uses the EPANET handle system, supports thread-safe operations, and utilizes **double precision** (`double`) for higher numerical accuracy. In v2.3+, it also supports **native vector fetching** for high performance.
 
 ```python
 from entoolkit import EPANETProject, EN_PRESSURE
@@ -79,7 +79,13 @@ help(legacy.ENaddnode)
 
 ---
 
-## What's New in 2.2
+## What's New in 2.3
+- **Native Vector API**: High-performance retrieval of node and link properties for the entire network in a single call (via `getnodevalues` and `getlinkvalues`).
+- **FAVAD Leakage Model**: Support for Fixed and Variable Area Discharge pipe leakage models.
+- **Positional Control Valves (PCV)**: Support for new PCV valve types.
+- **Improved Performance**: Internal engine optimizations for faster hydraulic convergence.
+
+## Highlights from 2.2
 - **Multiple Demands**: Support for multiple demand categories per junction.
 - **Advanced Controls**: New rule-based control functions.
 - **Pressure Dependent Demands (PDA)**: Direct support for PDA simulation models.
