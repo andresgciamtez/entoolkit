@@ -44,7 +44,11 @@ if _OS_NAME == "windows":
     # Using WinDLL for __stdcall convention on Windows
     _lib = ctypes.WinDLL(str(_lib_path))
 elif _OS_NAME == "darwin":
+    # macOS binaries are currently pending update for v2.3.0
     _lib_path = _BASE_PATH / f"darwin-{_arch}" / "libepanet.dylib"
+    if not _lib_path.exists():
+        logger.error("macOS binaries for EPANET 2.3 are currently unavailable in this package.")
+        raise FileNotFoundError(f"macOS binaries not found at {_lib_path}. Please update to 2.3 binaries manually.")
     _lib = ctypes.CDLL(str(_lib_path))
 else: # Linux
     _lib_path = _BASE_PATH / f"linux-{_arch}" / "libepanet2.so"

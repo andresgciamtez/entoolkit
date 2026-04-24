@@ -16,7 +16,7 @@ Currently, you can install the package by cloning the repository and installing 
 pip install -e .
 ```
 
-The package comes pre-bundled with 64-bit binaries for **Windows** and **Linux** (v2.3.0). macOS binaries are currently legacy (v2.2.0) and will be updated soon.
+The package comes pre-bundled with 64-bit binaries for **Windows** and **Linux** (v2.3.0). **Note: macOS binaries are currently unavailable for v2.3.0 and are pending update.**
 
 ---
 
