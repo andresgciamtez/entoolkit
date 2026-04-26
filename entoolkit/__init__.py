@@ -29,7 +29,7 @@ from .constants import *
 from .toolkit import EPANETProject
 from .logger import init_logger
 
-__version__ = "2.3.0-dev"
+__version__ = "2.3.0"
 
 # Initialize logging for the toolkit
 init_logger()

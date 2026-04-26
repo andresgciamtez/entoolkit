@@ -7,6 +7,7 @@ to manage multiple network simulations simultaneously with double precision.
 import ctypes
 import logging
 from typing import Tuple, List, Optional, Union
+import importlib.resources
 
 from .constants import *
 from .legacy import _lib, ENtoolkitError, ERR_MAX_CHAR, MAX_LABEL_LEN, MAX_TITLE_LEN

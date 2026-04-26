@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="entoolkit",
-    version="2.2.0",
+    version="2.3.0",
     author="Andrés García Martínez",
     description="Python extension for the EPANET 2.2 Programmer Toolkit",
     long_description=open("README.md", encoding="utf-8").read(),

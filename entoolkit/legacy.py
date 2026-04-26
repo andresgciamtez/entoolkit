@@ -12,6 +12,7 @@ import ctypes
 import platform
 import sys
 import logging
+import importlib.resources
 from pathlib import Path
 from typing import Tuple, List, Optional, Callable, Union
 
@@ -28,7 +29,7 @@ _Pdouble = ctypes.POINTER(ctypes.c_double)
 
 _OS_NAME = platform.system().lower()
 _MACHINE = platform.machine().lower()
-_BASE_PATH = Path(__file__).parent / "epanet"
+_BASE_PATH = importlib.resources.files("entoolkit").joinpath("epanet")
 
 # Architecture detection (x64, x86, arm64)
 if "arm" in _MACHINE or "aarch64" in _MACHINE:
