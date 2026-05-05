@@ -20,6 +20,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pypi_token.key
 
 # EPANET specific
 temp_binaries/

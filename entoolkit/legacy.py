@@ -59,6 +59,11 @@ MAX_LABEL_LEN = 31
 MAX_TITLE_LEN = 80
 ERR_MAX_CHAR = 259
 
+# Module-level state flag to prevent double-close crashes.
+# EPANET 2.2 legacy DLL corrupts the heap if ENclose() is called
+# when no project is open.
+_project_open = False
+
 
 def ENinit(rpt_file: str = "", bin_file: str = "", units_type: int = EN_CFS, headloss_type: int = EN_HW) -> None:
     """Initializes the toolkit system with a new project.
@@ -69,6 +74,7 @@ def ENinit(rpt_file: str = "", bin_file: str = "", units_type: int = EN_CFS, hea
         units_type (int, optional): Flow units code (e.g., EN_LPS, EN_CFS).
         headloss_type (int, optional): Headloss formula code (e.g., EN_HW, EN_DW).
     """
+    global _project_open
     logger.info("Initializing toolkit: rpt='%s', bin='%s', units=%d, hl=%d", 
                 rpt_file, bin_file, units_type, headloss_type)
     ierr = _lib.ENinit(ctypes.c_char_p(rpt_file.encode()),
@@ -76,6 +82,8 @@ def ENinit(rpt_file: str = "", bin_file: str = "", units_type: int = EN_CFS, hea
                        units_type, headloss_type)
     if ierr != 0:
         raise ENtoolkitError(ierr)
+    _project_open = True
+
 
 
 def ENgettitle() -> Tuple[str, str, str]:
@@ -175,7 +183,7 @@ _funcs_argtypes = {
     "ENsetnodeid": [ctypes.c_int, _Pchar],
     "ENsetnodevalue": [ctypes.c_int, ctypes.c_int, ctypes.c_float],
     "ENsetlinkvalue": [ctypes.c_int, ctypes.c_int, ctypes.c_float],
-    "ENsettimeparam": [ctypes.c_int, ctypes.c_int],
+    "ENsettimeparam": [ctypes.c_int, ctypes.c_long],
     "ENgetqualtype": [_Pint, _Pint],
     "ENsetqualtype": [ctypes.c_int, _Pchar, _Pchar, _Pchar],
     "ENgetoption": [ctypes.c_int, _Pfloat],
@@ -216,7 +224,12 @@ _funcs_argtypes = {
     "ENgetvertexcount": [ctypes.c_int, _Pint],
     "ENgetvertex": [ctypes.c_int, ctypes.c_int, _Pdouble, _Pdouble],
     "ENsetvertex": [ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double],
-    "ENsetvertices": [ctypes.c_int, _Pfloat, _Pfloat, ctypes.c_int],
+    "ENadddemand": [ctypes.c_int, ctypes.c_float, _Pchar, _Pchar],
+    "ENdeletedemand": [ctypes.c_int, ctypes.c_int],
+    "ENgetnumdemands": [ctypes.c_int, _Pint],
+    "ENgetbasedemand": [ctypes.c_int, ctypes.c_int, _Pfloat],
+    "ENsetbasedemand": [ctypes.c_int, ctypes.c_int, ctypes.c_float],
+    "ENsetvertices": [ctypes.c_int, _Pdouble, _Pdouble, ctypes.c_int],
     "ENgetpatternid": [ctypes.c_int, _Pchar],
     "ENgetpatternindex": [_Pchar, _Pint],
     "ENgetpatternlen": [ctypes.c_int, _Pint],
@@ -317,18 +330,29 @@ def ENopen(inp_file: str, rpt_file: str = '', bin_file: str = '') -> None:
         rpt_file (str, optional): Path to the report file to be created.
         bin_file (str, optional): Path to the binary output file to be created.
     """
+    global _project_open
     logger.info("Opening project: inp='%s', rpt='%s', bin='%s'", inp_file, rpt_file, bin_file)
     ierr = _lib.ENopen(ctypes.c_char_p(inp_file.encode()),
                        ctypes.c_char_p(rpt_file.encode()),
                        ctypes.c_char_p(bin_file.encode()))
     if ierr != 0:
         raise ENtoolkitError(ierr)
+    _project_open = True
 
 
 def ENclose() -> None:
-    """Closes the EPANET toolkit and releases files."""
+    """Closes the EPANET toolkit and releases files.
+    
+    Safe to call multiple times — subsequent calls after the first are no-ops.
+    This guards against heap corruption in the EPANET 2.2 legacy DLL.
+    """
+    global _project_open
+    if not _project_open:
+        logger.debug("ENclose called but no project is open, skipping")
+        return
     logger.info("Closing toolkit")
     ierr = _lib.ENclose()
+    _project_open = False
     if ierr != 0:
         raise ENtoolkitError(ierr)
 
@@ -431,7 +455,7 @@ def ENadddemand(node_index: int, base_demand: float, pattern_name: str = '', dem
     """Appends a new demand to a junction node demands list."""
     if not hasattr(_lib, "ENadddemand"):
         raise ENtoolkitError(202, "ENadddemand not supported by this library version")
-    ierr = _lib.ENadddemand(node_index, ctypes.c_double(base_demand),
+    ierr = _lib.ENadddemand(node_index, ctypes.c_float(base_demand),
                             ctypes.c_char_p(pattern_name.encode()),
                             ctypes.c_char_p(demand_name.encode()))
     if ierr != 0:
@@ -462,7 +486,7 @@ def ENgetbasedemand(node_index: int, demand_index: int) -> float:
     """Gets the base demand for one of a node's demand categories."""
     if not hasattr(_lib, "ENgetbasedemand"):
         raise ENtoolkitError(202, "ENgetbasedemand not supported by this library version")
-    base_demand = ctypes.c_double()
+    base_demand = ctypes.c_float()
     ierr = _lib.ENgetbasedemand(node_index, demand_index, ctypes.byref(base_demand))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -473,7 +497,7 @@ def ENsetbasedemand(node_index: int, demand_index: int, base_demand: float) -> N
     """Sets the base demand for one of a node's demand categories."""
     if not hasattr(_lib, "ENsetbasedemand"):
         raise ENtoolkitError(202, "ENsetbasedemand not supported by this library version")
-    ierr = _lib.ENsetbasedemand(node_index, demand_index, ctypes.c_double(base_demand))
+    ierr = _lib.ENsetbasedemand(node_index, demand_index, ctypes.c_float(base_demand))
     if ierr != 0:
         raise ENtoolkitError(ierr)
 
@@ -678,8 +702,8 @@ def ENsetvertices(index: int, x: List[float], y: List[float]) -> None:
     if not hasattr(_lib, "ENsetvertices"):
         raise ENtoolkitError(202, "ENsetvertices not supported by this library version")
     count = len(x)
-    xc = (ctypes.c_float * count)(*x)
-    yc = (ctypes.c_float * count)(*y)
+    xc = (ctypes.c_double * count)(*x)
+    yc = (ctypes.c_double * count)(*y)
     ierr = _lib.ENsetvertices(index, xc, yc, count)
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -905,7 +929,7 @@ def ENgetflowunits() -> int:
 
 def ENgettimeparam(param_code: int) -> int:
     """Gets the value of a specific time parameter."""
-    time_ptr = ctypes.c_int()
+    time_ptr = ctypes.c_long()
     ierr = _lib.ENgettimeparam(param_code, ctypes.byref(time_ptr))
     if ierr != 0:
         raise ENtoolkitError(ierr)
@@ -914,7 +938,7 @@ def ENgettimeparam(param_code: int) -> int:
 
 def ENsettimeparam(param_code: int, time_value: int) -> None:
     """Sets the value of a specific time parameter."""
-    ierr = _lib.ENsettimeparam(param_code, time_value)
+    ierr = _lib.ENsettimeparam(param_code, ctypes.c_long(time_value))
     if ierr != 0:
         raise ENtoolkitError(ierr)
 
