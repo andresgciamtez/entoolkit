@@ -33,6 +33,8 @@ def test_toolkit_full_mock_coverage_v2():
     mock_lib.EN_adddemand.side_effect = mock_ret_zero
     mock_lib.EN_deletedemand.side_effect = mock_ret_zero
     mock_lib.EN_setqualtype.side_effect = mock_ret_zero
+    mock_lib.EN_getnodevalues.side_effect = mock_ret_zero
+    mock_lib.EN_getlinkvalues.side_effect = mock_ret_zero
 
     with mock.patch("entoolkit.toolkit._lib", mock_lib):
         project = toolkit.EPANETProject()

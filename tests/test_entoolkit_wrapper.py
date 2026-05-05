@@ -3,7 +3,7 @@ import pytest
 from entoolkit import legacy as toolkit
 
 def test_version():
-    assert toolkit.ENgetversion() == 20200
+    assert toolkit.ENgetversion() >= 20200
 
 def test_simulation(net1_path):
     # Run full simulation

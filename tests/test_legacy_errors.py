@@ -33,8 +33,10 @@ def test_legacy_error_paths():
     ]})
 
     # Also mock ENgeterror so it doesn't crash trying to use mock_lib inside ENgeterror
+    # Mock _project_open=True so ENclose guard allows the mock call through
     with mock.patch("entoolkit.legacy._lib", mock_lib), \
-         mock.patch("entoolkit.legacy.ENgeterror", return_value="Mock Error"):
+         mock.patch("entoolkit.legacy.ENgeterror", return_value="Mock Error"), \
+         mock.patch("entoolkit.legacy._project_open", True):
         
         functions_to_test = [
             ("ENinit", ["", "", 0, 0]),

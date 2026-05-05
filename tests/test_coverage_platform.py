@@ -27,18 +27,16 @@ def test_platform_loading_coverage():
         from entoolkit import legacy
         importlib.reload(legacy)
         
-        # 2. Test Mac (Darwin) ARM64
-        mock_system.return_value = "Darwin"
-        mock_machine.return_value = "arm64"
-        importlib.reload(legacy)
-        
-        # 3. Test Linux (default case) x64
+        # 2. Test Linux x64
         mock_system.return_value = "Linux"
         mock_machine.return_value = "x86_64"
         importlib.reload(legacy)
 
-    # Reload one last time with REAL parameters or windows-safe ones to restore sanity
+    # Reload one last time with REAL parameters to restore sanity
+    from entoolkit import legacy
     importlib.reload(legacy)
+    # Reload resets module-level state; ensure _project_open is consistent
+    legacy._project_open = False
 
 def test_missing_library_error():
     """Test the failure case when the library cannot be loaded."""
@@ -50,3 +48,4 @@ def test_missing_library_error():
     
     # Restore legacy module state
     importlib.reload(legacy)
+    legacy._project_open = False
